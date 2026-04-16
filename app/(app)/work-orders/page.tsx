@@ -76,7 +76,7 @@ export default function WorkOrdersPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {(data?.data || []).map((o) => {
             const daysIn = Math.floor((Date.now() - new Date(o.enteredAt).getTime()) / 86400000);
-            const statusColor = { new: "var(--green)", progress: "var(--yellow)", delayed: "var(--red)", completed: "var(--accent)", incomplete: "var(--orange)" }[o.status] || "var(--border)";
+            const statusColor = ({ new: "var(--green)", progress: "var(--yellow)", delayed: "var(--red)", completed: "var(--accent)", incomplete: "var(--orange)", retired: "var(--text-muted)" } as Record<string,string>)[o.status] || "var(--border)";
             return (
               <button
                 key={o.id}

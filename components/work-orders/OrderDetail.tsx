@@ -1,14 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { X, Phone, Trash2, Edit3, Check, ChevronRight } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { X, Phone, Trash2, Check, ChevronRight, Edit3, Save, XCircle, UserPlus, Search } from "lucide-react";
 import { Badge } from "@/components/common/Badge";
 import { AddExpenseModal } from "./AddExpenseModal";
-import { formatCurrency, whatsappLink, daysBetween, timeAgo } from "@/lib/utils";
+import { formatCurrency, whatsappLink, daysBetween } from "@/lib/utils";
 import {
-  useWorkOrder, useDeleteExpense, useAdvancePhase, useCompleteWorkOrder,
+  useWorkOrder, useUpdateWorkOrder, useDeleteExpense, useAdvancePhase,
+  useCompleteWorkOrder, useRetireWorkOrder,
 } from "@/hooks/use-work-orders";
 import { useRepairPhases } from "@/hooks/use-repair-phases";
+import { useClients, useCreateClient, Client } from "@/hooks/use-clients";
 
 const WhatsAppIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
@@ -22,17 +24,168 @@ interface OrderDetailProps {
   isDesktop: boolean;
 }
 
+function ClientSearch({ currentClient, onSelect }: {
+  currentClient?: { id: string; fullName: string; phone: string } | null;
+  onSelect: (client: Client | null) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [showNew, setShowNew] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newPhone, setNewPhone] = useState("");
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const createClient = useCreateClient();
+
+  const { data } = useClients({ search: query || undefined, limit: 6 });
+  const clients = data?.data || [];
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%", background: "var(--surface-alt)", border: "1px solid var(--border)",
+    borderRadius: 8, padding: "8px 12px", color: "var(--text)", fontSize: 13,
+    outline: "none", boxSizing: "border-box",
+  };
+
+  const handleCreate = async () => {
+    if (!newName.trim() || !newPhone.trim()) return;
+    const client = await createClient.mutateAsync({ fullName: newName, phone: newPhone });
+    onSelect(client);
+    setShowNew(false);
+    setNewName("");
+    setNewPhone("");
+  };
+
+  if (showNew) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ fontSize: 12, color: "var(--text-sec)", fontWeight: 600 }}>Nuevo cliente</div>
+        <input placeholder="Nombre completo *" value={newName} onChange={e => setNewName(e.target.value)} style={inputStyle} />
+        <input placeholder="Teléfono *" value={newPhone} onChange={e => setNewPhone(e.target.value)} style={inputStyle} />
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            onClick={handleCreate}
+            disabled={createClient.isPending || !newName.trim() || !newPhone.trim()}
+            style={{
+              flex: 1, padding: "8px 12px", background: "var(--accent)", color: "#fff",
+              border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer",
+            }}
+          >
+            {createClient.isPending ? "..." : "Crear y asignar"}
+          </button>
+          <button onClick={() => setShowNew(false)} style={{ padding: "8px 12px", background: "var(--surface-alt)", border: "1px solid var(--border)", borderRadius: 8, color: "var(--text-sec)", fontSize: 13, cursor: "pointer" }}>
+            Cancelar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      {currentClient && (
+        <div style={{ fontSize: 13, color: "var(--text-sec)", marginBottom: 6 }}>
+          Actual: <span style={{ color: "var(--text)", fontWeight: 600 }}>{currentClient.fullName}</span>
+        </div>
+      )}
+      <div style={{ position: "relative" }}>
+        <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
+        <input
+          placeholder={currentClient ? "Cambiar cliente..." : "Buscar cliente..."}
+          value={query}
+          onChange={e => { setQuery(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          style={{ ...inputStyle, paddingLeft: 32 }}
+        />
+      </div>
+      {open && (
+        <div style={{
+          position: "absolute", top: "100%", left: 0, right: 0, zIndex: 50,
+          background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10,
+          marginTop: 4, overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+        }}>
+          {clients.map((c: Client) => (
+            <button
+              key={c.id}
+              onClick={() => { onSelect(c); setQuery(""); setOpen(false); }}
+              style={{
+                width: "100%", padding: "10px 14px", background: "none", border: "none",
+                textAlign: "left", cursor: "pointer", borderBottom: "1px solid var(--border)",
+              }}
+            >
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{c.fullName}</div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{c.phone}</div>
+            </button>
+          ))}
+          <button
+            onClick={() => { setShowNew(true); setOpen(false); }}
+            style={{
+              width: "100%", padding: "10px 14px", background: "none", border: "none",
+              textAlign: "left", cursor: "pointer", display: "flex", alignItems: "center", gap: 8,
+              color: "var(--accent)", fontSize: 13, fontWeight: 600,
+            }}
+          >
+            <UserPlus size={14} /> Crear nuevo cliente
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function OrderDetail({ orderId, onClose, isDesktop }: OrderDetailProps) {
   const [showAddExp, setShowAddExp] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editDescription, setEditDescription] = useState("");
+  const [editPrice, setEditPrice] = useState("");
+  const [editLabor, setEditLabor] = useState("");
+  const [editClientId, setEditClientId] = useState<string | null | undefined>(undefined);
+
   const { data: order, isLoading } = useWorkOrder(orderId || "");
   const { data: phases = [] } = useRepairPhases();
+  const updateOrder = useUpdateWorkOrder(orderId || "");
   const deleteExpense = useDeleteExpense(orderId || "");
   const advancePhase = useAdvancePhase(orderId || "");
   const completeOrder = useCompleteWorkOrder(orderId || "");
+  const retireOrder = useRetireWorkOrder(orderId || "");
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
+  const startEdit = () => {
+    if (!order) return;
+    setEditDescription(order.description || "");
+    setEditPrice(String(order.totalPrice || ""));
+    setEditLabor(String(order.laborCost || ""));
+    setEditClientId(undefined); // undefined = no change
+    setIsEditing(true);
+  };
+
+  const cancelEdit = () => setIsEditing(false);
+
+  const saveEdit = async () => {
+    const payload: Record<string, unknown> = {
+      description: editDescription || undefined,
+      totalPrice: editPrice ? Number(editPrice) : undefined,
+      laborCost: editLabor ? Number(editLabor) : undefined,
+    };
+    if (editClientId !== undefined) payload.clientId = editClientId;
+    await updateOrder.mutateAsync(payload);
+    setIsEditing(false);
+  };
+
   if (!orderId) return null;
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%", background: "var(--surface-alt)", border: "1px solid var(--border)",
+    borderRadius: 8, padding: "10px 12px", color: "var(--text)", fontSize: 14,
+    outline: "none", boxSizing: "border-box",
+  };
 
   const content = isLoading ? (
     <div style={{ padding: 24, color: "var(--text-muted)", textAlign: "center" }}>Cargando...</div>
@@ -42,16 +195,110 @@ export function OrderDetail({ orderId, onClose, isDesktop }: OrderDetailProps) {
     const daysIn = daysBetween(order.enteredAt);
     const isDelayed = daysIn >= 3;
 
-    const firstName = order.client?.fullName?.split(" ")[0] || "";
+    // Determine client to show (could be updated in edit mode)
+    const displayClient = order.client;
+
+    const firstName = displayClient?.fullName?.split(" ")[0] || "";
     const waTrackingMsg = `Hola ${firstName}, podés seguir el estado de tu ${order.vehicle?.brand || ""} ${order.vehicle?.model || ""} en tiempo real desde este link: ${appUrl}/tracking/${order.trackingCode}`;
-    const waLink = order.client?.phone
-      ? whatsappLink(order.client.phone, waTrackingMsg)
-      : "#";
-    const callLink = order.client?.phone ? `tel:${order.client.phone}` : "#";
+    const waLink = displayClient?.phone ? whatsappLink(displayClient.phone, waTrackingMsg) : "#";
+    const callLink = displayClient?.phone ? `tel:${displayClient.phone}` : "#";
 
     const currentPhaseIndex = phases.findIndex((p) => p.id === order.currentPhaseId);
     const hasNextPhase = currentPhaseIndex < phases.length - 1;
 
+    if (isEditing) {
+      return (
+        <div style={{ padding: 24 }}>
+          {/* Edit header */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+            <div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: "var(--text)" }}>
+                {order.vehicle?.brand} {order.vehicle?.model}
+              </div>
+              <div style={{ fontSize: 12, color: "var(--accent)", marginTop: 2, fontWeight: 600 }}>Editando orden</div>
+            </div>
+            <button onClick={cancelEdit} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer" }}>
+              <XCircle size={22} />
+            </button>
+          </div>
+
+          {/* Cliente */}
+          <div style={{ background: "var(--card)", borderRadius: 14, padding: 16, marginBottom: 12 }}>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>Cliente</div>
+            <ClientSearch
+              currentClient={displayClient}
+              onSelect={(c) => setEditClientId(c ? c.id : null)}
+            />
+            {editClientId !== undefined && editClientId !== null && (
+              <div style={{ fontSize: 12, color: "var(--green)", marginTop: 8 }}>✓ Cliente actualizado</div>
+            )}
+          </div>
+
+          {/* Descripción */}
+          <div style={{ background: "var(--card)", borderRadius: 14, padding: 16, marginBottom: 12 }}>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>Trabajo / Descripción</div>
+            <textarea
+              value={editDescription}
+              onChange={e => setEditDescription(e.target.value)}
+              placeholder="Describí el trabajo a realizar..."
+              rows={3}
+              style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }}
+            />
+          </div>
+
+          {/* Precio + Mano de obra */}
+          <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
+            <div style={{ flex: 1, background: "var(--card)", borderRadius: 14, padding: 16 }}>
+              <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>Precio total ($)</div>
+              <input
+                type="number"
+                value={editPrice}
+                onChange={e => setEditPrice(e.target.value)}
+                placeholder="0"
+                style={{ ...inputStyle, fontFamily: "var(--font-jetbrains-mono), monospace", fontSize: 18, fontWeight: 700 }}
+              />
+            </div>
+            <div style={{ flex: 1, background: "var(--card)", borderRadius: 14, padding: 16 }}>
+              <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>Mano de obra ($)</div>
+              <input
+                type="number"
+                value={editLabor}
+                onChange={e => setEditLabor(e.target.value)}
+                placeholder="0"
+                style={{ ...inputStyle, fontFamily: "var(--font-jetbrains-mono), monospace", fontSize: 18, fontWeight: 700 }}
+              />
+            </div>
+          </div>
+
+          {/* Save / Cancel */}
+          <div style={{ display: "flex", gap: 10 }}>
+            <button
+              onClick={saveEdit}
+              disabled={updateOrder.isPending}
+              style={{
+                flex: 1, padding: 14, background: "var(--accent)", color: "#fff",
+                border: "none", borderRadius: 12, fontSize: 14, fontWeight: 600,
+                cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+              }}
+            >
+              <Save size={16} /> {updateOrder.isPending ? "Guardando..." : "Guardar cambios"}
+            </button>
+            <button
+              onClick={cancelEdit}
+              style={{
+                padding: "14px 20px", background: "var(--surface-alt)",
+                border: "1px solid var(--border)", borderRadius: 12,
+                color: "var(--text-sec)", fontSize: 14, cursor: "pointer",
+              }}
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // View mode
     return (
       <div style={{ padding: 24 }}>
         {/* Header */}
@@ -64,9 +311,22 @@ export function OrderDetail({ orderId, onClose, isDesktop }: OrderDetailProps) {
               {order.vehicle?.year && `${order.vehicle.year} · `}{order.vehicle?.plate}
             </div>
           </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer" }}>
-            <X size={20} />
-          </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={startEdit}
+              title="Editar orden"
+              style={{
+                background: "var(--accent-soft)", border: "1px solid rgba(59,130,246,0.25)",
+                borderRadius: 8, padding: "6px 10px", color: "var(--accent)", cursor: "pointer",
+                display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600,
+              }}
+            >
+              <Edit3 size={14} /> Editar
+            </button>
+            <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer" }}>
+              <X size={20} />
+            </button>
+          </div>
         </div>
 
         <div style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
@@ -76,15 +336,11 @@ export function OrderDetail({ orderId, onClose, isDesktop }: OrderDetailProps) {
           </span>
         </div>
 
-        {/* Client + Communication */}
-        {order.client && (
+        {/* Client */}
+        {displayClient ? (
           <div style={{ background: "var(--card)", borderRadius: 14, padding: 16, marginBottom: 12 }}>
-            <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>
-              Cliente
-            </div>
-            <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", marginBottom: 12 }}>
-              {order.client.fullName}
-            </div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Cliente</div>
+            <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", marginBottom: 12 }}>{displayClient.fullName}</div>
             <div style={{ display: "flex", gap: 10 }}>
               <a
                 href={waLink}
@@ -112,12 +368,24 @@ export function OrderDetail({ orderId, onClose, isDesktop }: OrderDetailProps) {
               </a>
             </div>
           </div>
+        ) : (
+          <button
+            onClick={startEdit}
+            style={{
+              width: "100%", marginBottom: 12, padding: 14,
+              background: "var(--card)", border: "1px dashed var(--border)",
+              borderRadius: 14, cursor: "pointer", color: "var(--text-sec)",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 13,
+            }}
+          >
+            <UserPlus size={16} /> Asignar cliente
+          </button>
         )}
 
         {/* Work info */}
         <div style={{ background: "var(--card)", borderRadius: 14, padding: 16, marginBottom: 12 }}>
           <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Trabajo</div>
-          <div style={{ fontSize: 15, color: "var(--text)" }}>{order.description || "Sin especificar"}</div>
+          <div style={{ fontSize: 15, color: "var(--text)" }}>{order.description || <span style={{ color: "var(--text-muted)", fontStyle: "italic" }}>Sin especificar — editá para agregar</span>}</div>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10, fontSize: 13, color: isDelayed ? "var(--red)" : "var(--text-sec)" }}>
             {isDelayed ? "⚠" : "🕐"} {daysIn} {daysIn === 1 ? "día" : "días"} en taller
             {isDelayed && " — demorado"}
@@ -232,18 +500,32 @@ export function OrderDetail({ orderId, onClose, isDesktop }: OrderDetailProps) {
         </div>
 
         {/* Actions */}
-        <div style={{ display: "flex", gap: 10 }}>
-          {order.status !== "completed" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {order.status !== "completed" && order.status !== "retired" && (
             <button
               onClick={() => completeOrder.mutate()}
               disabled={completeOrder.isPending}
               style={{
-                flex: 1, padding: 14, background: "var(--green)", color: "#fff",
+                width: "100%", padding: 14, background: "var(--green)", color: "#fff",
                 border: "none", borderRadius: 12, fontSize: 14, fontWeight: 600,
                 cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
               }}
             >
-              <Check size={16} /> {completeOrder.isPending ? "..." : "Completar"}
+              <Check size={16} /> {completeOrder.isPending ? "..." : "Completar trabajo"}
+            </button>
+          )}
+          {order.status === "completed" && (
+            <button
+              onClick={() => retireOrder.mutate()}
+              disabled={retireOrder.isPending}
+              style={{
+                width: "100%", padding: 14, background: "var(--surface-alt)",
+                border: "1px solid var(--border)", borderRadius: 12,
+                fontSize: 14, fontWeight: 600, color: "var(--text-sec)",
+                cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+              }}
+            >
+              <Check size={16} /> {retireOrder.isPending ? "..." : "Marcar como retirado"}
             </button>
           )}
         </div>

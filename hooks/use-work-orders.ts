@@ -7,10 +7,11 @@ export interface WorkOrder {
   description?: string;
   laborCost: number;
   totalPrice: number;
-  status: "new" | "progress" | "delayed" | "completed" | "incomplete";
+  status: "new" | "progress" | "delayed" | "completed" | "incomplete" | "retired";
   currentPhaseId?: string;
   enteredAt: string;
   completedAt?: string;
+  retiredAt?: string;
   createdAt: string;
   vehicle?: {
     id: string; brand: string; model?: string; year?: number; plate?: string; color?: string;
@@ -35,7 +36,8 @@ interface Paginated<T> {
 }
 
 export function useWorkOrders(params?: {
-  page?: number; limit?: number; status?: string; search?: string; from?: string; to?: string;
+  page?: number; limit?: number; status?: string; search?: string;
+  from?: string; to?: string; includeFinancials?: boolean; vehicleId?: string;
 }) {
   return useQuery<Paginated<WorkOrder>>({
     queryKey: ["work-orders", params],
@@ -120,5 +122,16 @@ export function useDeleteExpense(workOrderId: string) {
     mutationFn: (expenseId: string) =>
       api.delete(`/expenses/${expenseId}`).then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["work-orders", workOrderId] }),
+  });
+}
+
+export function useRetireWorkOrder(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.post(`/work-orders/${id}/retire`).then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["work-orders"] });
+      qc.invalidateQueries({ queryKey: ["work-orders", id] });
+    },
   });
 }

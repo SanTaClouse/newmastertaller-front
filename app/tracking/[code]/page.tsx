@@ -137,7 +137,7 @@ export default async function TrackingPage({ params }: { params: Promise<{ code:
         <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 20, marginBottom: 20 }}>
           <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4 }}>{greeting},</div>
           <div style={{ fontSize: 20, fontWeight: 700, color: "var(--text)" }}>
-            tu {vehicleDesc} está en el taller
+            Tu {vehicleDesc} está en el taller
           </div>
           {(data.vehicle.year || data.vehicle.plate) && (
             <div style={{ fontSize: 13, color: "var(--text-sec)", marginTop: 6, display: "flex", gap: 12 }}>

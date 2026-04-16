@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Wrench, BarChart2, Clock, Users, Plus, LogOut } from "lucide-react";
+import { LayoutDashboard, Wrench, BarChart2, Clock, Users, Car, Plus, LogOut } from "lucide-react";
 import { useAuthStore } from "@/lib/auth";
 
 const NAV = [
@@ -11,6 +11,7 @@ const NAV = [
   { href: "/stats", label: "Estadísticas", icon: BarChart2 },
   { href: "/history", label: "Historial", icon: Clock },
   { href: "/clients", label: "Clientes", icon: Users },
+  { href: "/vehicles", label: "Vehículos", icon: Car },
 ];
 
 interface SidebarProps {

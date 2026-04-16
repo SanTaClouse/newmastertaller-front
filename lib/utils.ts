@@ -43,6 +43,7 @@ export const STATUS_LABELS: Record<string, string> = {
   delayed: "Demorado",
   completed: "Completado",
   incomplete: "Incompleto",
+  retired: "Retirado",
 };
 
 export const STATUS_COLORS: Record<string, { color: string; bg: string }> = {
@@ -51,4 +52,5 @@ export const STATUS_COLORS: Record<string, { color: string; bg: string }> = {
   delayed: { color: "var(--red)", bg: "var(--red-soft)" },
   completed: { color: "var(--accent)", bg: "var(--accent-soft)" },
   incomplete: { color: "var(--orange)", bg: "var(--orange-soft)" },
+  retired: { color: "var(--text-muted)", bg: "var(--surface-alt)" },
 };
