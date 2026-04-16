@@ -155,7 +155,7 @@ export function OrderDetail({ orderId, onClose, isDesktop }: OrderDetailProps) {
   const completeOrder = useCompleteWorkOrder(orderId || "");
   const retireOrder = useRetireWorkOrder(orderId || "");
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const appUrl = typeof window !== "undefined" ? window.location.origin : "https://newmastertaller-front.vercel.app";
 
   const startEdit = () => {
     if (!order) return;
