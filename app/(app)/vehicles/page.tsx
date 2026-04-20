@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, X, Edit3, Save, XCircle, History, Car } from "lucide-react";
+import { Search, X, Edit3, Save, XCircle, History, Car, Gauge, Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/common/Badge";
 import { formatCurrency } from "@/lib/utils";
-import { useVehicles, useVehicle, useUpdateVehicle, Vehicle } from "@/hooks/use-vehicles";
+import { useVehicles, useVehicle, useUpdateVehicle, Vehicle, useMileageLogs, useAddMileageLog, useDeleteMileageLog } from "@/hooks/use-vehicles";
 import { useClient } from "@/hooks/use-clients";
 import { useWorkOrders, WorkOrder } from "@/hooks/use-work-orders";
 
@@ -79,8 +79,12 @@ function HistoryCard({ order, onClick }: { order: WorkOrder; onClick: () => void
 function VehicleModal({ vehicleId, onClose, isDesktop }: {
   vehicleId: string; onClose: () => void; isDesktop: boolean;
 }) {
-  const [tab, setTab] = useState<"info" | "history">("info");
+  const [tab, setTab] = useState<"info" | "history" | "mileage">("info");
   const [isEditing, setIsEditing] = useState(false);
+  const [newMileage, setNewMileage] = useState("");
+  const [newMileageDate, setNewMileageDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [newMileageNotes, setNewMileageNotes] = useState("");
+  const [showMileageForm, setShowMileageForm] = useState(false);
   const [editBrand, setEditBrand] = useState("");
   const [editModel, setEditModel] = useState("");
   const [editYear, setEditYear] = useState("");
@@ -96,6 +100,9 @@ function VehicleModal({ vehicleId, onClose, isDesktop }: {
     limit: 100,
   });
   const updateVehicle = useUpdateVehicle(vehicleId);
+  const { data: mileageLogs = [] } = useMileageLogs(vehicleId);
+  const addMileageLog = useAddMileageLog(vehicleId);
+  const deleteMileageLog = useDeleteMileageLog(vehicleId);
 
   const orders = ordersData?.data || [];
 
@@ -108,6 +115,19 @@ function VehicleModal({ vehicleId, onClose, isDesktop }: {
     setEditColor(vehicle.color || "");
     setEditNotes(vehicle.notes || "");
     setIsEditing(true);
+  };
+
+  const saveMileage = async () => {
+    if (!newMileage || isNaN(Number(newMileage))) return;
+    await addMileageLog.mutateAsync({
+      mileage: Number(newMileage),
+      recordedAt: new Date(newMileageDate).toISOString(),
+      notes: newMileageNotes || undefined,
+    });
+    setNewMileage("");
+    setNewMileageNotes("");
+    setNewMileageDate(new Date().toISOString().slice(0, 10));
+    setShowMileageForm(false);
   };
 
   const saveEdit = async () => {
@@ -174,10 +194,10 @@ function VehicleModal({ vehicleId, onClose, isDesktop }: {
 
       {/* Tabs */}
       <div style={{ display: "flex", gap: 4, marginBottom: 20, background: "var(--card)", borderRadius: 10, padding: 4 }}>
-        {(["info", "history"] as const).map((t) => (
+        {(["info", "history", "mileage"] as const).map((t) => (
           <button
             key={t}
-            onClick={() => { setTab(t); setIsEditing(false); }}
+            onClick={() => { setTab(t); setIsEditing(false); setShowMileageForm(false); }}
             style={{
               flex: 1, padding: "8px 0", borderRadius: 7, border: "none", cursor: "pointer",
               background: tab === t ? "var(--surface)" : "transparent",
@@ -187,7 +207,9 @@ function VehicleModal({ vehicleId, onClose, isDesktop }: {
               transition: "all 0.15s",
             }}
           >
-            {t === "info" ? <><Car size={14} /> Datos</> : <><History size={14} /> Historial ({orders.length})</>}
+            {t === "info" && <><Car size={14} /> Datos</>}
+            {t === "history" && <><History size={14} /> Historial ({orders.length})</>}
+            {t === "mileage" && <><Gauge size={14} /> KM</>}
           </button>
         ))}
       </div>
@@ -339,7 +361,6 @@ function VehicleModal({ vehicleId, onClose, isDesktop }: {
               Sin historial de trabajos
             </div>
           ) : (
-            // Sort by most recent first (completedAt or enteredAt)
             [...orders]
               .sort((a, b) => {
                 const dateA = new Date(a.completedAt || a.retiredAt || a.enteredAt).getTime();
@@ -349,6 +370,144 @@ function VehicleModal({ vehicleId, onClose, isDesktop }: {
               .map((o) => (
                 <HistoryCard key={o.id} order={o} onClick={() => {}} />
               ))
+          )}
+        </div>
+      )}
+
+      {/* Mileage tab */}
+      {tab === "mileage" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+
+          {/* Add button / form */}
+          {!showMileageForm ? (
+            <button
+              onClick={() => setShowMileageForm(true)}
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                padding: "11px 0", borderRadius: 10, border: "1px dashed var(--border)",
+                background: "transparent", color: "var(--accent)", fontSize: 14,
+                fontWeight: 600, cursor: "pointer",
+              }}
+            >
+              <Plus size={16} /> Registrar kilometraje
+            </button>
+          ) : (
+            <div style={{ background: "var(--card)", borderRadius: 12, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>Nuevo registro</div>
+              <div style={{ display: "flex", gap: 10 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Kilometraje *</div>
+                  <input
+                    type="number"
+                    value={newMileage}
+                    onChange={(e) => setNewMileage(e.target.value)}
+                    placeholder="125000"
+                    autoFocus
+                    style={{
+                      width: "100%", background: "var(--surface-alt)", border: "1px solid var(--border)",
+                      borderRadius: 8, padding: "9px 12px", color: "var(--text)", fontSize: 14,
+                      outline: "none", boxSizing: "border-box",
+                      fontFamily: "var(--font-jetbrains-mono), monospace", fontWeight: 600,
+                    }}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Fecha *</div>
+                  <input
+                    type="date"
+                    value={newMileageDate}
+                    onChange={(e) => setNewMileageDate(e.target.value)}
+                    style={{
+                      width: "100%", background: "var(--surface-alt)", border: "1px solid var(--border)",
+                      borderRadius: 8, padding: "9px 12px", color: "var(--text)", fontSize: 14,
+                      outline: "none", boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Notas (opcional)</div>
+                <input
+                  value={newMileageNotes}
+                  onChange={(e) => setNewMileageNotes(e.target.value)}
+                  placeholder="Ej: al ingreso del vehículo"
+                  style={{
+                    width: "100%", background: "var(--surface-alt)", border: "1px solid var(--border)",
+                    borderRadius: 8, padding: "9px 12px", color: "var(--text)", fontSize: 14,
+                    outline: "none", boxSizing: "border-box",
+                  }}
+                />
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  onClick={saveMileage}
+                  disabled={addMileageLog.isPending || !newMileage}
+                  style={{
+                    flex: 1, padding: "10px 0", background: "var(--accent)", color: "#fff",
+                    border: "none", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                  }}
+                >
+                  <Save size={14} /> {addMileageLog.isPending ? "Guardando..." : "Guardar"}
+                </button>
+                <button
+                  onClick={() => { setShowMileageForm(false); setNewMileage(""); setNewMileageNotes(""); }}
+                  style={{
+                    padding: "10px 16px", background: "var(--surface-alt)", border: "1px solid var(--border)",
+                    borderRadius: 8, color: "var(--text-sec)", fontSize: 14, cursor: "pointer",
+                  }}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Log list */}
+          {mileageLogs.length === 0 ? (
+            <div style={{ textAlign: "center", padding: 32, color: "var(--text-muted)", fontSize: 13 }}>
+              Sin registros de kilometraje
+            </div>
+          ) : (
+            mileageLogs.map((log, i) => {
+              const prev = mileageLogs[i + 1];
+              const diff = prev ? log.mileage - prev.mileage : null;
+              return (
+                <div
+                  key={log.id}
+                  style={{
+                    background: "var(--card)", borderRadius: 12, padding: "12px 16px",
+                    display: "flex", alignItems: "center", gap: 12,
+                  }}
+                >
+                  <div style={{ flex: 1 }}>
+                    <div style={{
+                      fontSize: 20, fontWeight: 800, color: "var(--text)",
+                      fontFamily: "var(--font-jetbrains-mono), monospace",
+                      display: "flex", alignItems: "baseline", gap: 6,
+                    }}>
+                      {log.mileage.toLocaleString("es-AR")}
+                      <span style={{ fontSize: 12, fontWeight: 400, color: "var(--text-muted)" }}>km</span>
+                      {diff !== null && diff > 0 && (
+                        <span style={{ fontSize: 11, color: "var(--green)", fontWeight: 600 }}>
+                          +{diff.toLocaleString("es-AR")}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
+                      {new Date(log.recordedAt).toLocaleDateString("es-AR", { day: "numeric", month: "short", year: "numeric" })}
+                      {log.notes && <span style={{ marginLeft: 8 }}>· {log.notes}</span>}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => deleteMileageLog.mutate(log.id)}
+                    style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", padding: 4 }}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              );
+            })
           )}
         </div>
       )}
