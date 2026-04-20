@@ -90,6 +90,7 @@ function VehicleModal({ vehicleId, onClose, isDesktop }: {
   const [editYear, setEditYear] = useState("");
   const [editPlate, setEditPlate] = useState("");
   const [editColor, setEditColor] = useState("");
+  const [editEngine, setEditEngine] = useState("");
   const [editNotes, setEditNotes] = useState("");
 
   const { data: vehicle, isLoading } = useVehicle(vehicleId);
@@ -113,6 +114,7 @@ function VehicleModal({ vehicleId, onClose, isDesktop }: {
     setEditYear(vehicle.year ? String(vehicle.year) : "");
     setEditPlate(vehicle.plate || "");
     setEditColor(vehicle.color || "");
+    setEditEngine(vehicle.engine || "");
     setEditNotes(vehicle.notes || "");
     setIsEditing(true);
   };
@@ -137,6 +139,7 @@ function VehicleModal({ vehicleId, onClose, isDesktop }: {
       year: editYear ? Number(editYear) : undefined,
       plate: editPlate || undefined,
       color: editColor || undefined,
+      engine: editEngine || undefined,
       notes: editNotes || undefined,
     });
     setIsEditing(false);
@@ -243,6 +246,10 @@ function VehicleModal({ vehicleId, onClose, isDesktop }: {
               </div>
             </div>
             <div>
+              <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Motor</div>
+              <input value={editEngine} onChange={e => setEditEngine(e.target.value)} style={inputStyle} placeholder="1.6, 2.0 TDI, V8..." />
+            </div>
+            <div>
               <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Notas</div>
               <textarea
                 value={editNotes}
@@ -286,6 +293,7 @@ function VehicleModal({ vehicleId, onClose, isDesktop }: {
                 <InfoRow label="Año" value={vehicle.year?.toString()} />
                 <InfoRow label="Patente" value={vehicle.plate} mono />
                 <InfoRow label="Color" value={vehicle.color} />
+                <InfoRow label="Motor" value={vehicle.engine} />
               </div>
               {vehicle.notes && (
                 <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
@@ -617,7 +625,7 @@ export default function VehiclesPage() {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)" }}>
-                {["Vehículo", "Patente", "Color", "Año", ""].map((h) => (
+                {["Vehículo", "Patente", "Año", "Motor", "KM", ""].map((h) => (
                   <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: 11, color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: 1 }}>
                     {h}
                   </th>
@@ -645,8 +653,22 @@ export default function VehiclesPage() {
                       </span>
                     ) : <span style={{ color: "var(--text-muted)" }}>—</span>}
                   </td>
-                  <td style={{ padding: "12px 16px", fontSize: 13, color: "var(--text-sec)" }}>{v.color || "—"}</td>
                   <td style={{ padding: "12px 16px", fontSize: 13, color: "var(--text-sec)" }}>{v.year || "—"}</td>
+                  <td style={{ padding: "12px 16px", fontSize: 13, color: "var(--text-sec)" }}>{v.engine || "—"}</td>
+                  <td style={{ padding: "12px 16px" }}>
+                    {v.lastMileage ? (
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", fontFamily: "var(--font-jetbrains-mono), monospace" }}>
+                          {v.lastMileage.toLocaleString("es-AR")} km
+                        </div>
+                        {v.lastMileageAt && (
+                          <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 1 }}>
+                            {new Date(v.lastMileageAt).toLocaleDateString("es-AR", { day: "numeric", month: "short", year: "numeric" })}
+                          </div>
+                        )}
+                      </div>
+                    ) : <span style={{ color: "var(--text-muted)" }}>—</span>}
+                  </td>
                   <td style={{ padding: "12px 16px", textAlign: "right" }}>
                     <span style={{ fontSize: 12, color: "var(--accent)" }}>Ver →</span>
                   </td>
@@ -668,19 +690,24 @@ export default function VehiclesPage() {
                 display: "flex", justifyContent: "space-between", alignItems: "center",
               }}
             >
-              <div>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>
                   {v.brand} {v.model}
                 </div>
-                <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
+                <div style={{ display: "flex", gap: 10, marginTop: 3, flexWrap: "wrap" }}>
                   {v.year && <span style={{ fontSize: 12, color: "var(--text-sec)" }}>{v.year}</span>}
-                  {v.color && <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{v.color}</span>}
+                  {v.engine && <span style={{ fontSize: 12, color: "var(--text-sec)" }}>{v.engine}</span>}
+                  {v.lastMileage && (
+                    <span style={{ fontSize: 12, color: "var(--text-muted)", fontFamily: "var(--font-jetbrains-mono), monospace", fontWeight: 600 }}>
+                      {v.lastMileage.toLocaleString("es-AR")} km
+                    </span>
+                  )}
                 </div>
               </div>
               {v.plate && (
                 <span style={{
                   fontSize: 13, color: "var(--accent)", background: "var(--accent-soft)",
-                  padding: "4px 10px", borderRadius: 7,
+                  padding: "4px 10px", borderRadius: 7, flexShrink: 0,
                   fontFamily: "var(--font-jetbrains-mono), monospace", fontWeight: 700,
                 }}>
                   {v.plate}

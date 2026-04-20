@@ -14,7 +14,8 @@ export interface WorkOrder {
   retiredAt?: string;
   createdAt: string;
   vehicle?: {
-    id: string; brand: string; model?: string; year?: number; plate?: string; color?: string;
+    id: string; brand: string; model?: string; year?: number; plate?: string; color?: string; engine?: string;
+    lastMileage?: number; lastMileageAt?: string;
   };
   client?: { id: string; fullName: string; phone: string };
   expenses?: Expense[];

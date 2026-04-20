@@ -8,8 +8,11 @@ export interface Vehicle {
   year?: number;
   plate?: string;
   color?: string;
+  engine?: string;
   notes?: string;
   clientId?: string;
+  lastMileage?: number;
+  lastMileageAt?: string;
   createdAt: string;
 }
 

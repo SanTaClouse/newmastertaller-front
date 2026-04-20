@@ -307,8 +307,25 @@ export function OrderDetail({ orderId, onClose, isDesktop }: OrderDetailProps) {
             <div style={{ fontSize: 20, fontWeight: 700, color: "var(--text)" }}>
               {order.vehicle?.brand} {order.vehicle?.model}
             </div>
-            <div style={{ fontSize: 13, color: "var(--text-sec)", marginTop: 2 }}>
-              {order.vehicle?.year && `${order.vehicle.year} · `}{order.vehicle?.plate}
+            <div style={{ display: "flex", gap: 8, marginTop: 4, flexWrap: "wrap", alignItems: "center" }}>
+              {order.vehicle?.year && (
+                <span style={{ fontSize: 13, color: "var(--text-sec)" }}>{order.vehicle.year}</span>
+              )}
+              {order.vehicle?.plate && (
+                <span style={{ fontSize: 13, color: "var(--accent)", fontFamily: "var(--font-jetbrains-mono), monospace", fontWeight: 600 }}>
+                  {order.vehicle.plate}
+                </span>
+              )}
+              {order.vehicle?.engine && (
+                <span style={{ fontSize: 12, color: "var(--text-muted)", background: "var(--card)", padding: "2px 8px", borderRadius: 5 }}>
+                  {order.vehicle.engine}
+                </span>
+              )}
+              {order.vehicle?.lastMileage && (
+                <span style={{ fontSize: 12, color: "var(--text-muted)", fontFamily: "var(--font-jetbrains-mono), monospace" }}>
+                  {order.vehicle.lastMileage.toLocaleString("es-AR")} km
+                </span>
+              )}
             </div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
