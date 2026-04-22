@@ -20,6 +20,7 @@ interface TrackingData {
   workshop: { name?: string; phone?: string; address?: string };
   currentPhase: { name: string; orderIndex: number } | null;
   phases: TrackingPhase[];
+  diagnosis?: string | null;
 }
 
 async function getTracking(code: string): Promise<TrackingData | null> {
@@ -165,6 +166,16 @@ export default async function TrackingPage({ params }: { params: Promise<{ code:
             Ingresó {timeAgo(data.enteredAt)}
           </div>
         </div>
+
+        {/* Diagnosis */}
+        {data.diagnosis && (
+          <div style={{ background: "var(--surface)", border: "1px solid rgba(59,130,246,0.2)", borderRadius: 16, padding: 20, marginBottom: 20, background: "var(--accent-soft)" } as React.CSSProperties}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "var(--accent)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>
+              Diagnóstico del taller
+            </div>
+            <div style={{ fontSize: 15, color: "var(--text)", lineHeight: 1.5 }}>{data.diagnosis}</div>
+          </div>
+        )}
 
         {/* Phase timeline */}
         <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 20 }}>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { X, Phone, Trash2, Check, ChevronRight, Edit3, Save, XCircle, UserPlus, Search } from "lucide-react";
+import { X, Phone, Trash2, Check, ChevronRight, Edit3, Save, XCircle, UserPlus, Search, Info, Stethoscope } from "lucide-react";
 import { Badge } from "@/components/common/Badge";
 import { AddExpenseModal } from "./AddExpenseModal";
 import { formatCurrency, whatsappLink, daysBetween } from "@/lib/utils";
@@ -139,10 +139,65 @@ function ClientSearch({ currentClient, onSelect }: {
   );
 }
 
+function PhaseTooltip({ phases, currentPhaseId }: { phases: { id: string; name: string; orderIndex: number }[]; currentPhaseId?: string }) {
+  const [visible, setVisible] = useState(false);
+  const currentIndex = phases.findIndex(p => p.id === currentPhaseId);
+  const nextPhase = currentIndex >= 0 && currentIndex < phases.length - 1 ? phases[currentIndex + 1] : null;
+
+  return (
+    <div style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
+      <button
+        onMouseEnter={() => setVisible(true)}
+        onMouseLeave={() => setVisible(false)}
+        onFocus={() => setVisible(true)}
+        onBlur={() => setVisible(false)}
+        style={{ background: "none", border: "none", cursor: "pointer", padding: "0 4px", color: "var(--text-muted)", display: "flex", alignItems: "center" }}
+      >
+        <Info size={13} />
+      </button>
+      {visible && (
+        <div style={{
+          position: "absolute", left: 20, top: "50%", transform: "translateY(-50%)",
+          background: "var(--surface-alt)", border: "1px solid var(--border)",
+          borderRadius: 10, padding: "10px 14px", zIndex: 100, minWidth: 180,
+          boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+        }}>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>Todas las fases</div>
+          {phases.map((p, i) => {
+            const isCurrent = p.id === currentPhaseId;
+            const isDone = currentIndex >= 0 && i < currentIndex;
+            return (
+              <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0" }}>
+                <div style={{
+                  width: 6, height: 6, borderRadius: "50%", flexShrink: 0,
+                  background: isDone ? "var(--green)" : isCurrent ? "var(--accent)" : "var(--border)",
+                }} />
+                <span style={{
+                  fontSize: 12,
+                  fontWeight: isCurrent ? 700 : 400,
+                  color: isDone ? "var(--text-sec)" : isCurrent ? "var(--accent)" : "var(--text-muted)",
+                }}>
+                  {p.name} {isCurrent && "← actual"}
+                </span>
+              </div>
+            );
+          })}
+          {nextPhase && (
+            <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--border)", fontSize: 11, color: "var(--text-sec)" }}>
+              Siguiente: <span style={{ color: "var(--text)", fontWeight: 600 }}>{nextPhase.name}</span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function OrderDetail({ orderId, onClose, isDesktop }: OrderDetailProps) {
   const [showAddExp, setShowAddExp] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editDescription, setEditDescription] = useState("");
+  const [editDiagnosis, setEditDiagnosis] = useState("");
   const [editPrice, setEditPrice] = useState("");
   const [editLabor, setEditLabor] = useState("");
   const [editClientId, setEditClientId] = useState<string | null | undefined>(undefined);
@@ -160,9 +215,10 @@ export function OrderDetail({ orderId, onClose, isDesktop }: OrderDetailProps) {
   const startEdit = () => {
     if (!order) return;
     setEditDescription(order.description || "");
+    setEditDiagnosis(order.diagnosis || "");
     setEditPrice(String(order.totalPrice || ""));
     setEditLabor(String(order.laborCost || ""));
-    setEditClientId(undefined); // undefined = no change
+    setEditClientId(undefined);
     setIsEditing(true);
   };
 
@@ -171,6 +227,7 @@ export function OrderDetail({ orderId, onClose, isDesktop }: OrderDetailProps) {
   const saveEdit = async () => {
     const payload: Record<string, unknown> = {
       description: editDescription || undefined,
+      diagnosis: editDiagnosis || undefined,
       totalPrice: editPrice ? Number(editPrice) : undefined,
       laborCost: editLabor ? Number(editLabor) : undefined,
     };
@@ -195,9 +252,7 @@ export function OrderDetail({ orderId, onClose, isDesktop }: OrderDetailProps) {
     const daysIn = daysBetween(order.enteredAt);
     const isDelayed = daysIn >= 3;
 
-    // Determine client to show (could be updated in edit mode)
     const displayClient = order.client;
-
     const firstName = displayClient?.fullName?.split(" ")[0] || "";
     const waTrackingMsg = `Hola ${firstName}, podés seguir el estado de tu ${order.vehicle?.brand || ""} ${order.vehicle?.model || ""} en tiempo real desde este link: ${appUrl}/tracking/${order.trackingCode}`;
     const waLink = displayClient?.phone ? whatsappLink(displayClient.phone, waTrackingMsg) : "#";
@@ -205,11 +260,11 @@ export function OrderDetail({ orderId, onClose, isDesktop }: OrderDetailProps) {
 
     const currentPhaseIndex = phases.findIndex((p) => p.id === order.currentPhaseId);
     const hasNextPhase = currentPhaseIndex < phases.length - 1;
+    const nextPhase = hasNextPhase ? phases[currentPhaseIndex + 1] : null;
 
     if (isEditing) {
       return (
         <div style={{ padding: 24 }}>
-          {/* Edit header */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
             <div>
               <div style={{ fontSize: 18, fontWeight: 700, color: "var(--text)" }}>
@@ -222,55 +277,52 @@ export function OrderDetail({ orderId, onClose, isDesktop }: OrderDetailProps) {
             </button>
           </div>
 
-          {/* Cliente */}
           <div style={{ background: "var(--card)", borderRadius: 14, padding: 16, marginBottom: 12 }}>
             <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>Cliente</div>
-            <ClientSearch
-              currentClient={displayClient}
-              onSelect={(c) => setEditClientId(c ? c.id : null)}
-            />
+            <ClientSearch currentClient={displayClient} onSelect={(c) => setEditClientId(c ? c.id : null)} />
             {editClientId !== undefined && editClientId !== null && (
               <div style={{ fontSize: 12, color: "var(--green)", marginTop: 8 }}>✓ Cliente actualizado</div>
             )}
           </div>
 
-          {/* Descripción */}
           <div style={{ background: "var(--card)", borderRadius: 14, padding: 16, marginBottom: 12 }}>
-            <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>Trabajo / Descripción</div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>Lo que dice el cliente</div>
             <textarea
               value={editDescription}
               onChange={e => setEditDescription(e.target.value)}
-              placeholder="Describí el trabajo a realizar..."
-              rows={3}
+              placeholder="¿Qué le pasa al vehículo según el cliente?"
+              rows={2}
               style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }}
             />
           </div>
 
-          {/* Precio + Mano de obra */}
+          <div style={{ background: "var(--card)", borderRadius: 14, padding: 16, marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+              <Stethoscope size={13} style={{ color: "var(--accent)" }} />
+              <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1 }}>Diagnóstico del taller</div>
+            </div>
+            <textarea
+              value={editDiagnosis}
+              onChange={e => setEditDiagnosis(e.target.value)}
+              placeholder="Diagnóstico técnico realizado por el mecánico..."
+              rows={2}
+              style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }}
+            />
+          </div>
+
           <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
             <div style={{ flex: 1, background: "var(--card)", borderRadius: 14, padding: 16 }}>
               <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>Precio total ($)</div>
-              <input
-                type="number"
-                value={editPrice}
-                onChange={e => setEditPrice(e.target.value)}
-                placeholder="0"
-                style={{ ...inputStyle, fontFamily: "var(--font-jetbrains-mono), monospace", fontSize: 18, fontWeight: 700 }}
-              />
+              <input type="number" value={editPrice} onChange={e => setEditPrice(e.target.value)} placeholder="0"
+                style={{ ...inputStyle, fontFamily: "var(--font-jetbrains-mono), monospace", fontSize: 18, fontWeight: 700 }} />
             </div>
             <div style={{ flex: 1, background: "var(--card)", borderRadius: 14, padding: 16 }}>
               <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>Mano de obra ($)</div>
-              <input
-                type="number"
-                value={editLabor}
-                onChange={e => setEditLabor(e.target.value)}
-                placeholder="0"
-                style={{ ...inputStyle, fontFamily: "var(--font-jetbrains-mono), monospace", fontSize: 18, fontWeight: 700 }}
-              />
+              <input type="number" value={editLabor} onChange={e => setEditLabor(e.target.value)} placeholder="0"
+                style={{ ...inputStyle, fontFamily: "var(--font-jetbrains-mono), monospace", fontSize: 18, fontWeight: 700 }} />
             </div>
           </div>
 
-          {/* Save / Cancel */}
           <div style={{ display: "flex", gap: 10 }}>
             <button
               onClick={saveEdit}
@@ -283,14 +335,7 @@ export function OrderDetail({ orderId, onClose, isDesktop }: OrderDetailProps) {
             >
               <Save size={16} /> {updateOrder.isPending ? "Guardando..." : "Guardar cambios"}
             </button>
-            <button
-              onClick={cancelEdit}
-              style={{
-                padding: "14px 20px", background: "var(--surface-alt)",
-                border: "1px solid var(--border)", borderRadius: 12,
-                color: "var(--text-sec)", fontSize: 14, cursor: "pointer",
-              }}
-            >
+            <button onClick={cancelEdit} style={{ padding: "14px 20px", background: "var(--surface-alt)", border: "1px solid var(--border)", borderRadius: 12, color: "var(--text-sec)", fontSize: 14, cursor: "pointer" }}>
               Cancelar
             </button>
           </div>
@@ -308,9 +353,7 @@ export function OrderDetail({ orderId, onClose, isDesktop }: OrderDetailProps) {
               {order.vehicle?.brand} {order.vehicle?.model}
             </div>
             <div style={{ display: "flex", gap: 8, marginTop: 4, flexWrap: "wrap", alignItems: "center" }}>
-              {order.vehicle?.year && (
-                <span style={{ fontSize: 13, color: "var(--text-sec)" }}>{order.vehicle.year}</span>
-              )}
+              {order.vehicle?.year && <span style={{ fontSize: 13, color: "var(--text-sec)" }}>{order.vehicle.year}</span>}
               {order.vehicle?.plate && (
                 <span style={{ fontSize: 13, color: "var(--accent)", fontFamily: "var(--font-jetbrains-mono), monospace", fontWeight: 600 }}>
                   {order.vehicle.plate}
@@ -329,15 +372,7 @@ export function OrderDetail({ orderId, onClose, isDesktop }: OrderDetailProps) {
             </div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <button
-              onClick={startEdit}
-              title="Editar orden"
-              style={{
-                background: "var(--accent-soft)", border: "1px solid rgba(59,130,246,0.25)",
-                borderRadius: 8, padding: "6px 10px", color: "var(--accent)", cursor: "pointer",
-                display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600,
-              }}
-            >
+            <button onClick={startEdit} title="Editar orden" style={{ background: "var(--accent-soft)", border: "1px solid rgba(59,130,246,0.25)", borderRadius: 8, padding: "6px 10px", color: "var(--accent)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600 }}>
               <Edit3 size={14} /> Editar
             </button>
             <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer" }}>
@@ -359,76 +394,69 @@ export function OrderDetail({ orderId, onClose, isDesktop }: OrderDetailProps) {
             <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Cliente</div>
             <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", marginBottom: 12 }}>{displayClient.fullName}</div>
             <div style={{ display: "flex", gap: 10 }}>
-              <a
-                href={waLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
-                  gap: 8, padding: 12, background: "var(--whatsapp-soft)",
-                  border: "1px solid rgba(37,211,102,0.25)", borderRadius: 12,
-                  color: "var(--whatsapp)", fontSize: 14, fontWeight: 600, textDecoration: "none",
-                }}
-              >
+              <a href={waLink} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: 12, background: "var(--whatsapp-soft)", border: "1px solid rgba(37,211,102,0.25)", borderRadius: 12, color: "var(--whatsapp)", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
                 <WhatsAppIcon /> Seguimiento
               </a>
-              <a
-                href={callLink}
-                style={{
-                  flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
-                  gap: 8, padding: 12, background: "var(--accent-soft)",
-                  border: "1px solid rgba(59,130,246,0.25)", borderRadius: 12,
-                  color: "var(--accent)", fontSize: 14, fontWeight: 600, textDecoration: "none",
-                }}
-              >
+              <a href={callLink} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: 12, background: "var(--accent-soft)", border: "1px solid rgba(59,130,246,0.25)", borderRadius: 12, color: "var(--accent)", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
                 <Phone size={16} /> Llamar
               </a>
             </div>
           </div>
         ) : (
-          <button
-            onClick={startEdit}
-            style={{
-              width: "100%", marginBottom: 12, padding: 14,
-              background: "var(--card)", border: "1px dashed var(--border)",
-              borderRadius: 14, cursor: "pointer", color: "var(--text-sec)",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 13,
-            }}
-          >
+          <button onClick={startEdit} style={{ width: "100%", marginBottom: 12, padding: 14, background: "var(--card)", border: "1px dashed var(--border)", borderRadius: 14, cursor: "pointer", color: "var(--text-sec)", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 13 }}>
             <UserPlus size={16} /> Asignar cliente
           </button>
         )}
 
-        {/* Work info */}
-        <div style={{ background: "var(--card)", borderRadius: 14, padding: 16, marginBottom: 12 }}>
-          <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Trabajo</div>
-          <div style={{ fontSize: 15, color: "var(--text)" }}>{order.description || <span style={{ color: "var(--text-muted)", fontStyle: "italic" }}>Sin especificar — editá para agregar</span>}</div>
+        {/* Description (client complaint) */}
+        <div style={{ background: "var(--card)", borderRadius: 14, padding: 16, marginBottom: order.diagnosis ? 0 : 12, borderBottomLeftRadius: order.diagnosis ? 0 : 14, borderBottomRightRadius: order.diagnosis ? 0 : 14 }}>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Lo que dice el cliente</div>
+          <div style={{ fontSize: 14, color: "var(--text)" }}>
+            {order.description || <span style={{ color: "var(--text-muted)", fontStyle: "italic" }}>Sin especificar — editá para agregar</span>}
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10, fontSize: 13, color: isDelayed ? "var(--red)" : "var(--text-sec)" }}>
-            {isDelayed ? "⚠" : "🕐"} {daysIn} {daysIn === 1 ? "día" : "días"} en taller
-            {isDelayed && " — demorado"}
+            {isDelayed ? "⚠" : "🕐"} {daysIn} {daysIn === 1 ? "día" : "días"} en taller{isDelayed && " — demorado"}
           </div>
         </div>
+
+        {/* Diagnosis (mechanic's finding) */}
+        {order.diagnosis ? (
+          <div style={{ background: "var(--accent-soft)", border: "1px solid rgba(59,130,246,0.2)", borderTop: "none", borderBottomLeftRadius: 14, borderBottomRightRadius: 14, padding: 16, marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+              <Stethoscope size={12} style={{ color: "var(--accent)" }} />
+              <div style={{ fontSize: 11, color: "var(--accent)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Diagnóstico del taller</div>
+            </div>
+            <div style={{ fontSize: 14, color: "var(--text)" }}>{order.diagnosis}</div>
+          </div>
+        ) : (
+          <div style={{ marginBottom: 12 }} />
+        )}
 
         {/* Phase */}
         {order.currentPhaseId && phases.length > 0 && (
           <div style={{ background: "var(--card)", borderRadius: 14, padding: 16, marginBottom: 12 }}>
-            <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Fase actual</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+              <span style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1 }}>Fase actual</span>
+              <PhaseTooltip phases={phases} currentPhaseId={order.currentPhaseId} />
+            </div>
             <div style={{ fontSize: 14, fontWeight: 600, color: "var(--accent)" }}>
               {phases.find((p) => p.id === order.currentPhaseId)?.name || "—"}
             </div>
             {hasNextPhase && order.status !== "completed" && (
-              <button
-                onClick={() => advancePhase.mutate()}
-                disabled={advancePhase.isPending}
-                style={{
-                  marginTop: 12, display: "flex", alignItems: "center", gap: 6,
-                  padding: "8px 14px", background: "var(--accent-soft)",
-                  border: "1px solid rgba(59,130,246,0.25)", borderRadius: 10,
-                  color: "var(--accent)", fontSize: 13, fontWeight: 600, cursor: "pointer",
-                }}
-              >
-                <ChevronRight size={16} /> Avanzar fase
-              </button>
+              <div style={{ marginTop: 10 }}>
+                {nextPhase && (
+                  <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>
+                    Siguiente: <span style={{ color: "var(--text-sec)" }}>{nextPhase.name}</span>
+                  </div>
+                )}
+                <button
+                  onClick={() => advancePhase.mutate()}
+                  disabled={advancePhase.isPending}
+                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", background: "var(--accent-soft)", border: "1px solid rgba(59,130,246,0.25)", borderRadius: 10, color: "var(--accent)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+                >
+                  <ChevronRight size={16} /> Avanzar a {nextPhase?.name || "siguiente fase"}
+                </button>
+              </div>
             )}
           </div>
         )}
@@ -453,14 +481,7 @@ export function OrderDetail({ orderId, onClose, isDesktop }: OrderDetailProps) {
         <div style={{ background: "var(--card)", borderRadius: 14, padding: 16, marginBottom: 12 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
             <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1 }}>Gastos / Repuestos</div>
-            <button
-              onClick={() => setShowAddExp(true)}
-              style={{
-                display: "flex", alignItems: "center", gap: 4, padding: "6px 12px",
-                background: "var(--accent-soft)", border: "1px solid rgba(59,130,246,0.25)",
-                borderRadius: 8, color: "var(--accent)", fontSize: 12, fontWeight: 600, cursor: "pointer",
-              }}
-            >
+            <button onClick={() => setShowAddExp(true)} style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", background: "var(--accent-soft)", border: "1px solid rgba(59,130,246,0.25)", borderRadius: 8, color: "var(--accent)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
               + Agregar
             </button>
           </div>
@@ -469,22 +490,13 @@ export function OrderDetail({ orderId, onClose, isDesktop }: OrderDetailProps) {
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {order.expenses.map((e) => (
-                <div
-                  key={e.id}
-                  style={{
-                    display: "flex", justifyContent: "space-between", alignItems: "center",
-                    padding: "10px 12px", background: "var(--surface-alt)", borderRadius: 10,
-                  }}
-                >
+                <div key={e.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", background: "var(--surface-alt)", borderRadius: 10 }}>
                   <span style={{ fontSize: 13, color: "var(--text)", flex: 1 }}>{e.description}</span>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <span style={{ fontSize: 14, fontWeight: 600, color: "var(--red)", fontFamily: "var(--font-jetbrains-mono), monospace" }}>
                       {formatCurrency(e.cost)}
                     </span>
-                    <button
-                      onClick={() => deleteExpense.mutate(e.id)}
-                      style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", padding: 2 }}
-                    >
+                    <button onClick={() => deleteExpense.mutate(e.id)} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", padding: 2 }}>
                       <Trash2 size={15} />
                     </button>
                   </div>
@@ -501,16 +513,8 @@ export function OrderDetail({ orderId, onClose, isDesktop }: OrderDetailProps) {
         </div>
 
         {/* Net profit */}
-        <div
-          style={{
-            background: profit >= 0 ? "var(--green-soft)" : "var(--red-soft)",
-            borderRadius: 14, padding: 16, marginBottom: 16,
-            border: `1px solid ${profit >= 0 ? "rgba(16,185,129,0.2)" : "rgba(239,68,68,0.2)"}`,
-          }}
-        >
-          <div style={{ fontSize: 11, color: profit >= 0 ? "var(--green)" : "var(--red)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>
-            Ganancia neta
-          </div>
+        <div style={{ background: profit >= 0 ? "var(--green-soft)" : "var(--red-soft)", borderRadius: 14, padding: 16, marginBottom: 16, border: `1px solid ${profit >= 0 ? "rgba(16,185,129,0.2)" : "rgba(239,68,68,0.2)"}` }}>
+          <div style={{ fontSize: 11, color: profit >= 0 ? "var(--green)" : "var(--red)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>Ganancia neta</div>
           <div style={{ fontSize: 26, fontWeight: 700, color: profit >= 0 ? "var(--green)" : "var(--red)", fontFamily: "var(--font-jetbrains-mono), monospace" }}>
             {formatCurrency(profit)}
           </div>
@@ -519,29 +523,12 @@ export function OrderDetail({ orderId, onClose, isDesktop }: OrderDetailProps) {
         {/* Actions */}
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {order.status !== "completed" && order.status !== "retired" && (
-            <button
-              onClick={() => completeOrder.mutate()}
-              disabled={completeOrder.isPending}
-              style={{
-                width: "100%", padding: 14, background: "var(--green)", color: "#fff",
-                border: "none", borderRadius: 12, fontSize: 14, fontWeight: 600,
-                cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-              }}
-            >
+            <button onClick={() => completeOrder.mutate()} disabled={completeOrder.isPending} style={{ width: "100%", padding: 14, background: "var(--green)", color: "#fff", border: "none", borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
               <Check size={16} /> {completeOrder.isPending ? "..." : "Completar trabajo"}
             </button>
           )}
           {order.status === "completed" && (
-            <button
-              onClick={() => retireOrder.mutate()}
-              disabled={retireOrder.isPending}
-              style={{
-                width: "100%", padding: 14, background: "var(--surface-alt)",
-                border: "1px solid var(--border)", borderRadius: 12,
-                fontSize: 14, fontWeight: 600, color: "var(--text-sec)",
-                cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-              }}
-            >
+            <button onClick={() => retireOrder.mutate()} disabled={retireOrder.isPending} style={{ width: "100%", padding: 14, background: "var(--surface-alt)", border: "1px solid var(--border)", borderRadius: 12, fontSize: 14, fontWeight: 600, color: "var(--text-sec)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
               <Check size={16} /> {retireOrder.isPending ? "..." : "Marcar como retirado"}
             </button>
           )}
@@ -554,36 +541,15 @@ export function OrderDetail({ orderId, onClose, isDesktop }: OrderDetailProps) {
 
   if (isDesktop) {
     return (
-      <div
-        style={{
-          position: "fixed", right: 0, top: 0, width: 420, height: "100vh",
-          overflowY: "auto", background: "var(--surface)",
-          borderLeft: "1px solid var(--border)", zIndex: 200,
-          boxShadow: "-4px 0 30px rgba(0,0,0,0.3)",
-        }}
-      >
+      <div style={{ position: "fixed", right: 0, top: 0, width: 420, height: "100vh", overflowY: "auto", background: "var(--surface)", borderLeft: "1px solid var(--border)", zIndex: 200, boxShadow: "-4px 0 30px rgba(0,0,0,0.3)" }}>
         {content}
       </div>
     );
   }
 
   return (
-    <div
-      style={{
-        position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)",
-        backdropFilter: "blur(10px)", zIndex: 1000,
-        display: "flex", alignItems: "flex-end", justifyContent: "center",
-      }}
-      onClick={onClose}
-    >
-      <div
-        style={{
-          width: "100%", maxWidth: 520, maxHeight: "90vh", overflowY: "auto",
-          background: "var(--surface)", borderRadius: "20px 20px 0 0",
-          border: "1px solid var(--border)", borderBottom: "none",
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", backdropFilter: "blur(10px)", zIndex: 1000, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={onClose}>
+      <div style={{ width: "100%", maxWidth: 520, maxHeight: "90vh", overflowY: "auto", background: "var(--surface)", borderRadius: "20px 20px 0 0", border: "1px solid var(--border)", borderBottom: "none" }} onClick={(e) => e.stopPropagation()}>
         {content}
       </div>
     </div>

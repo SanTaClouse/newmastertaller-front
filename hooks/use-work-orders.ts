@@ -5,6 +5,7 @@ export interface WorkOrder {
   id: string;
   trackingCode: string;
   description?: string;
+  diagnosis?: string;
   laborCost: number;
   totalPrice: number;
   status: "new" | "progress" | "delayed" | "completed" | "incomplete" | "retired";

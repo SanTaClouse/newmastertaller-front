@@ -6,6 +6,7 @@ import { Badge } from "@/components/common/Badge";
 import { OrderDetail } from "@/components/work-orders/OrderDetail";
 import { formatCurrency } from "@/lib/utils";
 import { useWorkOrders } from "@/hooks/use-work-orders";
+import { useDetailPanel } from "@/contexts/detail-panel-context";
 
 const FILTERS = [
   ["", "Todos"], ["new", "Nuevos"], ["progress", "En proceso"],
@@ -17,6 +18,8 @@ export default function WorkOrdersPage() {
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isDesktop, setIsDesktop] = useState(false);
+  const [now] = useState(() => Date.now());
+  const { setIsOpen } = useDetailPanel();
 
   const { data, isLoading } = useWorkOrders({ status: filter || undefined, search: search || undefined });
 
@@ -26,6 +29,10 @@ export default function WorkOrdersPage() {
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
+
+  useEffect(() => {
+    setIsOpen(isDesktop && !!selectedId);
+  }, [isDesktop, selectedId, setIsOpen]);
 
   return (
     <div style={{ padding: isDesktop ? "0 32px 40px" : "0 16px 100px" }}>
@@ -75,7 +82,7 @@ export default function WorkOrdersPage() {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {(data?.data || []).map((o) => {
-            const daysIn = Math.floor((Date.now() - new Date(o.enteredAt).getTime()) / 86400000);
+            const daysIn = Math.floor((now - new Date(o.enteredAt).getTime()) / 86400000);
             const statusColor = ({ new: "var(--green)", progress: "var(--yellow)", delayed: "var(--red)", completed: "var(--accent)", incomplete: "var(--orange)", retired: "var(--text-muted)" } as Record<string,string>)[o.status] || "var(--border)";
             return (
               <button
