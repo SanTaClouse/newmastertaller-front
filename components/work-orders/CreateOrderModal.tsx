@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { X, Plus, Check } from "lucide-react";
 import { useCarBrands, useCarModels } from "@/hooks/use-car-catalog";
 import { useCreateWorkOrder } from "@/hooks/use-work-orders";
+import { api } from "@/lib/api";
 
 interface CreateOrderModalProps {
   open: boolean;
@@ -18,10 +19,12 @@ export function CreateOrderModal({ open, onClose }: CreateOrderModalProps) {
   const [year, setYear] = useState("");
   const [work, setWork] = useState("");
   const [price, setPrice] = useState("");
+  const [km, setKm] = useState("");
   const [showBrands, setShowBrands] = useState(false);
   const [showModels, setShowModels] = useState(false);
 
   const refs = [
+    useRef<HTMLInputElement>(null),
     useRef<HTMLInputElement>(null),
     useRef<HTMLInputElement>(null),
     useRef<HTMLInputElement>(null),
@@ -42,13 +45,13 @@ export function CreateOrderModal({ open, onClose }: CreateOrderModalProps) {
 
   useEffect(() => {
     if (open) {
-      setStep(0); setBrand(""); setBrandId(""); setModel(""); setYear(""); setWork(""); setPrice("");
+      setStep(0); setBrand(""); setBrandId(""); setModel(""); setYear(""); setWork(""); setPrice(""); setKm("");
       setTimeout(() => refs[0].current?.focus(), 200);
     }
   }, [open]);
 
   const advance = (s: number) => {
-    if (s < 4) {
+    if (s < 5) {
       setStep(s + 1);
       setTimeout(() => refs[s + 1].current?.focus(), 50);
     }
@@ -58,13 +61,20 @@ export function CreateOrderModal({ open, onClose }: CreateOrderModalProps) {
 
   async function handleCreate() {
     if (!canCreate) return;
-    await createOrder.mutateAsync({
+    const order = await createOrder.mutateAsync({
       brand: brand.trim(),
       model: model.trim() || undefined,
       year: year ? parseInt(year) : undefined,
       description: work.trim() || undefined,
       totalPrice: price ? parseFloat(price) : 0,
     });
+    if (km && order?.vehicle?.id) {
+      await api.post(`/vehicles/${order.vehicle.id}/mileage`, {
+        mileage: Number(km),
+        recordedAt: order.enteredAt || new Date().toISOString(),
+        notes: "Al ingreso del vehículo",
+      }).catch(() => {});
+    }
     onClose();
   }
 
@@ -134,7 +144,7 @@ export function CreateOrderModal({ open, onClose }: CreateOrderModalProps) {
 
           {/* Progress bar */}
           <div style={{ display: "flex", gap: 6, marginBottom: 24 }}>
-            {["Marca *", "Modelo", "Año", "Trabajo", "Precio"].map((_, i) => (
+            {["Marca *", "Modelo", "Año", "Trabajo", "Precio", "KM"].map((_, i) => (
               <div
                 key={i}
                 style={{
@@ -273,9 +283,30 @@ export function CreateOrderModal({ open, onClose }: CreateOrderModalProps) {
                   value={price}
                   onFocus={() => setStep(4)}
                   onChange={(e) => setPrice(e.target.value.replace(/\D/g, ""))}
+                  onKeyDown={(e) => { if (e.key === "Enter") advance(4); }}
                   placeholder="Ej: 50000"
                   inputMode="numeric"
                   style={{ ...fieldStyle(step === 4), fontFamily: "var(--font-jetbrains-mono), monospace" }}
+                />
+              </div>
+            )}
+
+            {/* KM */}
+            {step >= 5 && (
+              <div>
+                <div style={labelStyle(step === 5, !!km.trim())}>
+                  {km.trim() && <Check size={12} />} Kilometraje{" "}
+                  <span style={{ color: "var(--text-muted)", fontWeight: 400, textTransform: "none" }}>(opcional)</span>
+                </div>
+                <input
+                  ref={refs[5]}
+                  value={km}
+                  onFocus={() => setStep(5)}
+                  onChange={(e) => setKm(e.target.value.replace(/\D/g, ""))}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleCreate(); }}
+                  placeholder="Ej: 85000"
+                  inputMode="numeric"
+                  style={{ ...fieldStyle(step === 5), fontFamily: "var(--font-jetbrains-mono), monospace" }}
                 />
               </div>
             )}

@@ -75,12 +75,13 @@ export function Sidebar({ onNewOrder }: SidebarProps) {
 
       {/* Nav */}
       <nav style={{ padding: "16px 12px", flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
-        <button
-          onClick={onNewOrder}
+        {/* Primary: full intake form */}
+        <Link
+          href="/add-order"
           style={{
             width: "100%",
             padding: "12px 16px",
-            background: "var(--accent)",
+            background: pathname.startsWith("/add-order") ? "var(--accent-dark, #2563EB)" : "var(--accent)",
             color: "#fff",
             border: "none",
             borderRadius: 12,
@@ -91,23 +92,33 @@ export function Sidebar({ onNewOrder }: SidebarProps) {
             alignItems: "center",
             gap: 8,
             marginBottom: 6,
+            textDecoration: "none",
+            boxShadow: "0 2px 12px var(--accent-glow)",
           }}
         >
-          <Plus size={18} /> Nueva orden
-        </button>
-        <Link
-          href="/add-order"
-          style={{
-            display: "flex", alignItems: "center", justifyContent: "center",
-            padding: "8px 16px", marginBottom: 12,
-            background: "transparent", border: "1px solid var(--border)",
-            borderRadius: 10, fontSize: 12, fontWeight: 500,
-            color: pathname.startsWith("/add-order") ? "var(--accent)" : "var(--text-muted)",
-            textDecoration: "none", gap: 6,
-          }}
-        >
-          <Plus size={13} /> Carga completa
+          <Plus size={18} /> Carga completa
         </Link>
+        {/* Secondary: quick order modal */}
+        <button
+          onClick={onNewOrder}
+          style={{
+            width: "100%",
+            padding: "8px 16px",
+            marginBottom: 12,
+            background: "transparent",
+            border: "1px solid var(--border)",
+            borderRadius: 10,
+            fontSize: 12,
+            fontWeight: 500,
+            color: "var(--text-muted)",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+          }}
+        >
+          <Plus size={13} /> Nueva orden rápida
+        </button>
 
         {NAV.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href);

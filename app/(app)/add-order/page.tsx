@@ -7,6 +7,7 @@ import { useCarBrands, useCarModels } from "@/hooks/use-car-catalog";
 import { useCreateWorkOrder } from "@/hooks/use-work-orders";
 import { useClients, useCreateClient, Client } from "@/hooks/use-clients";
 import { isValidWhatsappPhone } from "@/lib/utils";
+import { api } from "@/lib/api";
 
 const inputStyle: React.CSSProperties = {
   width: "100%", background: "var(--surface-alt)", border: "1px solid var(--border)",
@@ -275,6 +276,7 @@ export default function AddOrderPage() {
   const [description, setDescription] = useState("");
   const [totalPrice, setTotalPrice] = useState("");
   const [laborCost, setLaborCost] = useState("");
+  const [mileage, setMileage] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
   // Refs para navegación por teclado entre campos
@@ -307,7 +309,7 @@ export default function AddOrderPage() {
 
   const handleSubmit = async () => {
     if (!brand.trim()) return;
-    await createOrder.mutateAsync({
+    const order = await createOrder.mutateAsync({
       brand,
       model: model || undefined,
       year: year ? Number(year) : undefined,
@@ -318,6 +320,13 @@ export default function AddOrderPage() {
       laborCost: laborCost ? Number(laborCost) : undefined,
       clientId: clientId || undefined,
     });
+    if (mileage && order?.vehicle?.id) {
+      await api.post(`/vehicles/${order.vehicle.id}/mileage`, {
+        mileage: Number(mileage),
+        recordedAt: order.enteredAt || new Date().toISOString(),
+        notes: "Al ingreso del vehículo",
+      }).catch(() => {});
+    }
     setSubmitted(true);
     setTimeout(() => router.push("/work-orders"), 1200);
   };
@@ -400,14 +409,24 @@ export default function AddOrderPage() {
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
             <div>
               <label style={labelStyle}>Color</label>
-              <input value={color} onChange={e => setColor(e.target.value)} placeholder="Blanco, Negro..." style={inputStyle} />
+              <input value={color} onChange={e => setColor(e.target.value)} placeholder="Blanco..." style={inputStyle} />
             </div>
             <div>
               <label style={labelStyle}>Motor</label>
-              <input value={engine} onChange={e => setEngine(e.target.value)} placeholder="1.6, 2.0 TDI..." style={inputStyle} />
+              <input value={engine} onChange={e => setEngine(e.target.value)} placeholder="1.6, TDI..." style={inputStyle} />
+            </div>
+            <div>
+              <label style={labelStyle}>KM</label>
+              <input
+                type="number"
+                value={mileage}
+                onChange={e => setMileage(e.target.value)}
+                placeholder="125000"
+                style={{ ...inputStyle, fontFamily: "var(--font-jetbrains-mono), monospace", fontWeight: 600 }}
+              />
             </div>
           </div>
         </div>
