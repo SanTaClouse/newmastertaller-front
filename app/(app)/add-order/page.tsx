@@ -333,7 +333,7 @@ export default function AddOrderPage() {
       <div style={{ padding: "28px 0 20px" }}>
         <div style={{ fontSize: 22, fontWeight: 700, color: "var(--text)" }}>Nueva orden completa</div>
         <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4 }}>
-          Podés navegar entre campos con <kbd style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 4, padding: "1px 5px", fontSize: 11 }}>↑ ↓</kbd> y confirmar con <kbd style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 4, padding: "1px 5px", fontSize: 11 }}>Enter</kbd>
+          Podés navegar entre campos con <kbd style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 4, padding: "1px 5px", fontSize: 11 }}>↑ ↓</kbd> con <kbd style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 4, padding: "1px 5px", fontSize: 11 }}>Tab</kbd>y confirmar con <kbd style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 4, padding: "1px 5px", fontSize: 11 }}>Enter</kbd>
         </div>
       </div>
 

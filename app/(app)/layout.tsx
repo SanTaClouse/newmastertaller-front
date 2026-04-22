@@ -12,14 +12,12 @@ import { useWorkOrders } from "@/hooks/use-work-orders";
 import { useDashboard } from "@/hooks/use-stats";
 import { DetailPanelProvider, useDetailPanel } from "@/contexts/detail-panel-context";
 
-const DETAIL_PANEL_WIDTH = 420;
-
 function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const [isDesktop, setIsDesktop] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [panelCollapsed, setPanelCollapsed] = useState(false);
   const pathname = usePathname();
-  const { isOpen: detailOpen } = useDetailPanel();
+  const { isOpen: detailOpen, panelWidth: detailPanelWidth } = useDetailPanel();
 
   const { data: dashData } = useDashboard();
   const { data: ordersData } = useWorkOrders({ status: "completed", limit: 5 });
@@ -35,7 +33,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
 
   const rightPanelWidth = showPanel ? (panelCollapsed ? 48 : 280) : 0;
   // Detail panel replaces DesktopPanel when open — they don't coexist
-  const totalRightMargin = isDesktop && detailOpen ? DETAIL_PANEL_WIDTH : rightPanelWidth;
+  const totalRightMargin = isDesktop && detailOpen ? detailPanelWidth : rightPanelWidth;
 
   return (
     <AuthGuard>

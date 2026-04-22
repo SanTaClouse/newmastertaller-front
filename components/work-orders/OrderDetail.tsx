@@ -202,6 +202,7 @@ export function OrderDetail({ orderId, onClose, isDesktop }: OrderDetailProps) {
   const [editPrice, setEditPrice] = useState("");
   const [editLabor, setEditLabor] = useState("");
   const [editClientId, setEditClientId] = useState<string | null | undefined>(undefined);
+  const [confirmComplete, setConfirmComplete] = useState(false);
   const { setIsOpen } = useDetailPanel();
 
   useEffect(() => {
@@ -539,9 +540,43 @@ export function OrderDetail({ orderId, onClose, isDesktop }: OrderDetailProps) {
         {/* Actions */}
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {order.status !== "completed" && order.status !== "retired" && (
-            <button onClick={() => completeOrder.mutate()} disabled={completeOrder.isPending} style={{ width: "100%", padding: 14, background: "var(--green)", color: "#fff", border: "none", borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-              <Check size={16} /> {completeOrder.isPending ? "..." : "Completar trabajo"}
-            </button>
+            confirmComplete ? (
+              <div style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 12, padding: 16 }}>
+                <div style={{ fontSize: 13, color: "var(--yellow)", fontWeight: 600, marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
+                  ⚠ Este trabajo nunca avanzó de fase
+                </div>
+                <div style={{ fontSize: 12, color: "var(--text-sec)", marginBottom: 12 }}>
+                  El vehículo sigue en la primera fase. ¿Querés completar igual?
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    onClick={() => { completeOrder.mutate(); setConfirmComplete(false); }}
+                    disabled={completeOrder.isPending}
+                    style={{ flex: 1, padding: "10px 0", background: "var(--green)", color: "#fff", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+                  >
+                    {completeOrder.isPending ? "..." : "Sí, completar igual"}
+                  </button>
+                  <button
+                    onClick={() => setConfirmComplete(false)}
+                    style={{ padding: "10px 16px", background: "var(--surface-alt)", border: "1px solid var(--border)", borderRadius: 10, fontSize: 13, color: "var(--text-sec)", cursor: "pointer" }}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  const neverAdvanced = phases.length > 0 && currentPhaseIndex === 0;
+                  if (neverAdvanced) { setConfirmComplete(true); return; }
+                  completeOrder.mutate();
+                }}
+                disabled={completeOrder.isPending}
+                style={{ width: "100%", padding: 14, background: "var(--green)", color: "#fff", border: "none", borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+              >
+                <Check size={16} /> {completeOrder.isPending ? "..." : "Completar trabajo"}
+              </button>
+            )
           )}
           {order.status === "completed" && (
             <button onClick={() => retireOrder.mutate()} disabled={retireOrder.isPending} style={{ width: "100%", padding: 14, background: "var(--surface-alt)", border: "1px solid var(--border)", borderRadius: 12, fontSize: 14, fontWeight: 600, color: "var(--text-sec)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
