@@ -479,7 +479,11 @@ export function OrderDetail({ orderId, onClose, isDesktop }: OrderDetailProps) {
                       )}
                       <button
                         onClick={() => {
-                          if (nextPhase?.name.toLowerCase().includes("diagnos")) {
+                          const phaseName = (nextPhase?.name || "").toLowerCase()
+                            .replace(/[áàä]/g, "a").replace(/[éèë]/g, "e")
+                            .replace(/[íìï]/g, "i").replace(/[óòö]/g, "o")
+                            .replace(/[úùü]/g, "u");
+                          if (phaseName.includes("diagnos")) {
                             setShowDiagnosisModal(true);
                           } else {
                             advancePhase.mutate();
