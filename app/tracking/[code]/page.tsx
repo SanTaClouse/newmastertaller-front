@@ -33,21 +33,47 @@ async function getTracking(code: string): Promise<TrackingData | null> {
   }
 }
 
+const STATUS_LABEL_ES: Record<string, string> = {
+  new: "Nuevo ingreso", progress: "En proceso", delayed: "Demorado",
+  completed: "Listo para retirar", incomplete: "Trabajo incompleto", retired: "Retirado",
+};
+
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }): Promise<Metadata> {
   const { code } = await params;
   const data = await getTracking(code);
   if (!data) return { title: "Seguimiento | MiTaller" };
 
-  const name = data.client?.firstName ? `Hola ${data.client.firstName}` : "";
-  const vehicle = `${data.vehicle.brand || ""} ${data.vehicle.model || ""}`.trim();
+  const vehicle = [data.vehicle.brand, data.vehicle.model, data.vehicle.year].filter(Boolean).join(" ");
   const workshop = data.workshop.name || "MiTaller";
+  const statusLabel = STATUS_LABEL_ES[data.status] || data.status;
+  const phase = data.currentPhase?.name;
+  const firstName = data.client?.firstName;
+
+  const title = firstName
+    ? `${firstName} — tu ${vehicle} está en ${workshop}`
+    : `${vehicle} — Seguimiento en ${workshop}`;
+
+  const description = phase
+    ? `${statusLabel} · Fase actual: ${phase}. Seguí el estado en tiempo real.`
+    : `${statusLabel} · Seguí el estado de tu vehículo en tiempo real.`;
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://newmastertaller-front.vercel.app";
 
   return {
-    title: `${name ? `${name} — ` : ""}${vehicle} | ${workshop}`,
-    description: `Seguí en tiempo real el estado de tu ${vehicle} en ${workshop}`,
+    title,
+    description,
     openGraph: {
-      title: `${vehicle} — Seguimiento en vivo`,
-      description: `Estado actual: ${data.currentPhase?.name || data.status}`,
+      title,
+      description,
+      url: `${appUrl}/tracking/${code}`,
+      siteName: workshop,
+      type: "website",
+      locale: "es_AR",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
     },
   };
 }

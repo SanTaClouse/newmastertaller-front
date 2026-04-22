@@ -23,8 +23,17 @@ export function timeAgo(date: string | Date): string {
   return formatDistanceToNow(new Date(date), { addSuffix: true, locale: es });
 }
 
+export function normalizePhone(phone: string): string {
+  return phone.replace(/\D/g, "");
+}
+
+export function isValidWhatsappPhone(phone: string): boolean {
+  const digits = normalizePhone(phone);
+  return digits.length >= 10 && digits.length <= 15;
+}
+
 export function whatsappLink(phone: string, message: string): string {
-  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+  return `https://wa.me/${normalizePhone(phone)}?text=${encodeURIComponent(message)}`;
 }
 
 export function trackingWhatsappMessage(
@@ -35,6 +44,27 @@ export function trackingWhatsappMessage(
   appUrl: string
 ): string {
   return `Hola ${firstName}, podés seguir el estado de tu ${brand} ${model} en tiempo real desde este link: ${appUrl}/tracking/${trackingCode}`;
+}
+
+export function diagnosisWhatsappMessage({
+  firstName,
+  vehicle,
+  diagnosis,
+  price,
+  estimatedTime,
+  estimatedUnit,
+  trackingUrl,
+}: {
+  firstName: string;
+  vehicle: string;
+  diagnosis: string;
+  price: number;
+  estimatedTime: number;
+  estimatedUnit: "horas" | "días";
+  trackingUrl: string;
+}): string {
+  const priceFormatted = price.toLocaleString("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
+  return `Hola ${firstName}. ¡Ya encontramos el problema! Su vehículo ${vehicle} tiene ${diagnosis}. El costo de reparación es de ${priceFormatted} y estará disponible aproximadamente en ${estimatedTime} ${estimatedUnit}.\n\nEsperamos confirmación para comenzar la reparación. Recordá que podés hacer el seguimiento de tu vehículo en tiempo real con el siguiente link:\n${trackingUrl}`;
 }
 
 export const STATUS_LABELS: Record<string, string> = {

@@ -4,7 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import { X, Phone, Trash2, Check, ChevronRight, Edit3, Save, XCircle, UserPlus, Search, Info, Stethoscope } from "lucide-react";
 import { Badge } from "@/components/common/Badge";
 import { AddExpenseModal } from "./AddExpenseModal";
-import { formatCurrency, whatsappLink, daysBetween } from "@/lib/utils";
+import { DiagnosisModal } from "./DiagnosisModal";
+import { formatCurrency, whatsappLink, daysBetween, isValidWhatsappPhone } from "@/lib/utils";
 import {
   useWorkOrder, useUpdateWorkOrder, useDeleteExpense, useAdvancePhase,
   useCompleteWorkOrder, useRetireWorkOrder,
@@ -68,7 +69,19 @@ function ClientSearch({ currentClient, onSelect }: {
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <div style={{ fontSize: 12, color: "var(--text-sec)", fontWeight: 600 }}>Nuevo cliente</div>
         <input placeholder="Nombre completo *" value={newName} onChange={e => setNewName(e.target.value)} style={inputStyle} />
-        <input placeholder="Teléfono *" value={newPhone} onChange={e => setNewPhone(e.target.value)} style={inputStyle} />
+        <div>
+          <input
+            placeholder="+54 9 11 1234-5678"
+            value={newPhone}
+            onChange={e => setNewPhone(e.target.value)}
+            style={{ ...inputStyle, borderColor: newPhone.length > 3 && !isValidWhatsappPhone(newPhone) ? "var(--orange)" : undefined }}
+          />
+          {newPhone.length > 3 && !isValidWhatsappPhone(newPhone) && (
+            <div style={{ fontSize: 11, color: "var(--orange)", marginTop: 4 }}>
+              Incluí el código de país para WhatsApp (ej: +54 9 11 1234-5678)
+            </div>
+          )}
+        </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button
             onClick={handleCreate}
@@ -203,6 +216,7 @@ export function OrderDetail({ orderId, onClose, isDesktop }: OrderDetailProps) {
   const [editLabor, setEditLabor] = useState("");
   const [editClientId, setEditClientId] = useState<string | null | undefined>(undefined);
   const [confirmComplete, setConfirmComplete] = useState(false);
+  const [showDiagnosisModal, setShowDiagnosisModal] = useState(false);
   const { setIsOpen } = useDetailPanel();
 
   useEffect(() => {
@@ -464,7 +478,13 @@ export function OrderDetail({ orderId, onClose, isDesktop }: OrderDetailProps) {
                         </div>
                       )}
                       <button
-                        onClick={() => advancePhase.mutate()}
+                        onClick={() => {
+                          if (nextPhase?.name.toLowerCase().includes("diagnos")) {
+                            setShowDiagnosisModal(true);
+                          } else {
+                            advancePhase.mutate();
+                          }
+                        }}
                         disabled={advancePhase.isPending}
                         style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", background: "var(--accent-soft)", border: "1px solid rgba(59,130,246,0.25)", borderRadius: 10, color: "var(--accent)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
                       >
@@ -586,6 +606,18 @@ export function OrderDetail({ orderId, onClose, isDesktop }: OrderDetailProps) {
         </div>
 
         <AddExpenseModal open={showAddExp} onClose={() => setShowAddExp(false)} workOrderId={orderId || ""} />
+
+        <DiagnosisModal
+          open={showDiagnosisModal}
+          onClose={() => setShowDiagnosisModal(false)}
+          orderId={orderId || ""}
+          nextPhaseName={nextPhase?.name || "Diagnóstico"}
+          vehicle={`${order.vehicle?.brand || ""} ${order.vehicle?.model || ""}`.trim()}
+          client={displayClient ? { fullName: displayClient.fullName, phone: displayClient.phone } : null}
+          trackingCode={order.trackingCode}
+          initialDiagnosis={order.diagnosis || ""}
+          initialPrice={Number(order.totalPrice) || undefined}
+        />
       </div>
     );
   })();

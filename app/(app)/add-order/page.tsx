@@ -6,6 +6,7 @@ import { Search, UserPlus, Check, ChevronDown, Info } from "lucide-react";
 import { useCarBrands, useCarModels } from "@/hooks/use-car-catalog";
 import { useCreateWorkOrder } from "@/hooks/use-work-orders";
 import { useClients, useCreateClient, Client } from "@/hooks/use-clients";
+import { isValidWhatsappPhone } from "@/lib/utils";
 
 const inputStyle: React.CSSProperties = {
   width: "100%", background: "var(--surface-alt)", border: "1px solid var(--border)",
@@ -184,14 +185,21 @@ function ClientPicker({ onSelect }: { onSelect: (id: string | null) => void }) {
           onKeyDown={e => e.key === "Enter" && phoneRef.current?.focus()}
           style={inputStyle}
         />
-        <input
-          ref={phoneRef}
-          placeholder="Teléfono *"
-          value={newPhone}
-          onChange={e => setNewPhone(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && handleCreate()}
-          style={inputStyle}
-        />
+        <div>
+          <input
+            ref={phoneRef}
+            placeholder="+54 9 11 1234-5678"
+            value={newPhone}
+            onChange={e => setNewPhone(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && handleCreate()}
+            style={{ ...inputStyle, borderColor: newPhone.length > 3 && !isValidWhatsappPhone(newPhone) ? "var(--orange)" : undefined }}
+          />
+          {newPhone.length > 3 && !isValidWhatsappPhone(newPhone) && (
+            <div style={{ fontSize: 11, color: "var(--orange)", marginTop: 4 }}>
+              Incluí el código de país para que WhatsApp funcione (ej: +54 9 11 1234-5678)
+            </div>
+          )}
+        </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={handleCreate} disabled={createClient.isPending || !newName.trim() || !newPhone.trim()}
             style={{ flex: 1, padding: "10px 14px", background: "var(--accent)", color: "#fff", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
