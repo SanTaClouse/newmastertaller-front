@@ -169,7 +169,7 @@ export default async function TrackingPage({ params }: { params: Promise<{ code:
 
         {/* Diagnosis */}
         {data.diagnosis && (
-          <div style={{ background: "var(--surface)", border: "1px solid rgba(59,130,246,0.2)", borderRadius: 16, padding: 20, marginBottom: 20, background: "var(--accent-soft)" } as React.CSSProperties}>
+          <div style={{ background: "var(--accent-soft)", border: "1px solid rgba(59,130,246,0.2)", borderRadius: 16, padding: 20, marginBottom: 20 }}>
             <div style={{ fontSize: 12, fontWeight: 600, color: "var(--accent)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>
               Diagnóstico del taller
             </div>
