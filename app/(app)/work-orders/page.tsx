@@ -6,7 +6,6 @@ import { Badge } from "@/components/common/Badge";
 import { OrderDetail } from "@/components/work-orders/OrderDetail";
 import { formatCurrency } from "@/lib/utils";
 import { useWorkOrders } from "@/hooks/use-work-orders";
-import { useDetailPanel } from "@/contexts/detail-panel-context";
 
 const FILTERS = [
   ["", "Todos"], ["new", "Nuevos"], ["progress", "En proceso"],
@@ -19,7 +18,6 @@ export default function WorkOrdersPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isDesktop, setIsDesktop] = useState(false);
   const [now] = useState(() => Date.now());
-  const { setIsOpen } = useDetailPanel();
 
   const { data, isLoading } = useWorkOrders({ status: filter || undefined, search: search || undefined });
 
@@ -29,10 +27,6 @@ export default function WorkOrdersPage() {
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
-
-  useEffect(() => {
-    setIsOpen(isDesktop && !!selectedId);
-  }, [isDesktop, selectedId, setIsOpen]);
 
   return (
     <div style={{ padding: isDesktop ? "0 32px 40px" : "0 16px 100px" }}>

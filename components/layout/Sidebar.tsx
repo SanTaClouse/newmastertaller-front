@@ -90,11 +90,24 @@ export function Sidebar({ onNewOrder }: SidebarProps) {
             display: "flex",
             alignItems: "center",
             gap: 8,
-            marginBottom: 16,
+            marginBottom: 6,
           }}
         >
           <Plus size={18} /> Nueva orden
         </button>
+        <Link
+          href="/add-order"
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: "8px 16px", marginBottom: 12,
+            background: "transparent", border: "1px solid var(--border)",
+            borderRadius: 10, fontSize: 12, fontWeight: 500,
+            color: pathname.startsWith("/add-order") ? "var(--accent)" : "var(--text-muted)",
+            textDecoration: "none", gap: 6,
+          }}
+        >
+          <Plus size={13} /> Carga completa
+        </Link>
 
         {NAV.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href);

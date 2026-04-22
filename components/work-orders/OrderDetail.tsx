@@ -11,6 +11,7 @@ import {
 } from "@/hooks/use-work-orders";
 import { useRepairPhases } from "@/hooks/use-repair-phases";
 import { useClients, useCreateClient, Client } from "@/hooks/use-clients";
+import { useDetailPanel } from "@/contexts/detail-panel-context";
 
 const WhatsAppIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
@@ -177,7 +178,7 @@ function PhaseTooltip({ phases, currentPhaseId }: { phases: { id: string; name: 
                   fontWeight: isCurrent ? 700 : 400,
                   color: isDone ? "var(--text-sec)" : isCurrent ? "var(--accent)" : "var(--text-muted)",
                 }}>
-                  {p.name} {isCurrent && "← actual"}
+                  {p.name} {isCurrent}
                 </span>
               </div>
             );
@@ -201,6 +202,12 @@ export function OrderDetail({ orderId, onClose, isDesktop }: OrderDetailProps) {
   const [editPrice, setEditPrice] = useState("");
   const [editLabor, setEditLabor] = useState("");
   const [editClientId, setEditClientId] = useState<string | null | undefined>(undefined);
+  const { setIsOpen } = useDetailPanel();
+
+  useEffect(() => {
+    if (isDesktop) setIsOpen(!!orderId);
+    return () => { if (isDesktop) setIsOpen(false); };
+  }, [isDesktop, orderId, setIsOpen]);
 
   const { data: order, isLoading } = useWorkOrder(orderId || "");
   const { data: phases = [] } = useRepairPhases();

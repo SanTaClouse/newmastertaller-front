@@ -34,13 +34,13 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   }, []);
 
   const rightPanelWidth = showPanel ? (panelCollapsed ? 48 : 280) : 0;
-  const detailWidth = isDesktop && detailOpen ? DETAIL_PANEL_WIDTH : 0;
-  const totalRightMargin = rightPanelWidth + detailWidth;
+  // Detail panel replaces DesktopPanel when open — they don't coexist
+  const totalRightMargin = isDesktop && detailOpen ? DETAIL_PANEL_WIDTH : rightPanelWidth;
 
   return (
     <AuthGuard>
       {isDesktop && <Sidebar onNewOrder={() => setCreateOpen(true)} />}
-      {showPanel && (
+      {showPanel && !detailOpen && (
         <DesktopPanel
           collapsed={panelCollapsed}
           onToggle={() => setPanelCollapsed((v) => !v)}
