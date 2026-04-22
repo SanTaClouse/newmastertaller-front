@@ -5,7 +5,7 @@ import { X, Phone, Trash2, Check, ChevronRight, Edit3, Save, XCircle, UserPlus, 
 import { Badge } from "@/components/common/Badge";
 import { AddExpenseModal } from "./AddExpenseModal";
 import { DiagnosisModal } from "./DiagnosisModal";
-import { formatCurrency, whatsappLink, daysBetween, isValidWhatsappPhone } from "@/lib/utils";
+import { formatCurrency, whatsappLink, daysBetween, isValidWhatsappPhone, sanitizePhone } from "@/lib/utils";
 import {
   useWorkOrder, useUpdateWorkOrder, useDeleteExpense, useAdvancePhase,
   useCompleteWorkOrder, useRetireWorkOrder,
@@ -57,7 +57,7 @@ function ClientSearch({ currentClient, onSelect }: {
 
   const handleCreate = async () => {
     if (!newName.trim() || !newPhone.trim()) return;
-    const client = await createClient.mutateAsync({ fullName: newName, phone: newPhone });
+    const client = await createClient.mutateAsync({ fullName: newName, phone: sanitizePhone(newPhone) });
     onSelect(client);
     setShowNew(false);
     setNewName("");
@@ -78,7 +78,7 @@ function ClientSearch({ currentClient, onSelect }: {
           />
           {newPhone.length > 3 && !isValidWhatsappPhone(newPhone) && (
             <div style={{ fontSize: 11, color: "var(--orange)", marginTop: 4 }}>
-              Incluí el código de país para WhatsApp (ej: +54 9 11 1234-5678)
+              Ingresá el número local sin 0 inicial (ej: 342 463 9480) — el código de país se agrega automáticamente
             </div>
           )}
         </div>

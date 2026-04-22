@@ -6,7 +6,7 @@ import { Search, UserPlus, Check, ChevronDown, Info } from "lucide-react";
 import { useCarBrands, useCarModels } from "@/hooks/use-car-catalog";
 import { useCreateWorkOrder } from "@/hooks/use-work-orders";
 import { useClients, useCreateClient, Client } from "@/hooks/use-clients";
-import { isValidWhatsappPhone } from "@/lib/utils";
+import { isValidWhatsappPhone, sanitizePhone } from "@/lib/utils";
 import { api } from "@/lib/api";
 
 const inputStyle: React.CSSProperties = {
@@ -146,7 +146,7 @@ function ClientPicker({ onSelect }: { onSelect: (id: string | null) => void }) {
 
   const handleCreate = async () => {
     if (!newName.trim() || !newPhone.trim()) return;
-    const client = await createClient.mutateAsync({ fullName: newName, phone: newPhone });
+    const client = await createClient.mutateAsync({ fullName: newName, phone: sanitizePhone(newPhone) });
     setSelected(client);
     onSelect(client.id);
     setShowNew(false);
@@ -197,7 +197,7 @@ function ClientPicker({ onSelect }: { onSelect: (id: string | null) => void }) {
           />
           {newPhone.length > 3 && !isValidWhatsappPhone(newPhone) && (
             <div style={{ fontSize: 11, color: "var(--orange)", marginTop: 4 }}>
-              Incluí el código de país para que WhatsApp funcione (ej: +54 9 11 1234-5678)
+              Ingresá el número local sin 0 inicial (ej: 342 463 9480) — el código de país se agrega automáticamente
             </div>
           )}
         </div>
