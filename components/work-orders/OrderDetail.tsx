@@ -435,29 +435,38 @@ export function OrderDetail({ orderId, onClose, isDesktop }: OrderDetailProps) {
         {/* Phase */}
         {order.currentPhaseId && phases.length > 0 && (
           <div style={{ background: "var(--card)", borderRadius: 14, padding: 16, marginBottom: 12 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-              <span style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1 }}>Fase actual</span>
-              <PhaseTooltip phases={phases} currentPhaseId={order.currentPhaseId} />
-            </div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: "var(--accent)" }}>
-              {phases.find((p) => p.id === order.currentPhaseId)?.name || "—"}
-            </div>
-            {hasNextPhase && order.status !== "completed" && (
-              <div style={{ marginTop: 10 }}>
-                {nextPhase && (
-                  <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>
-                    Siguiente: <span style={{ color: "var(--text-sec)" }}>{nextPhase.name}</span>
+            {(() => {
+              const isClosed = order.status === "completed" || order.status === "retired";
+              return (
+                <>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+                    <span style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1 }}>
+                      {isClosed ? "Última fase" : "Fase actual"}
+                    </span>
+                    {!isClosed && <PhaseTooltip phases={phases} currentPhaseId={order.currentPhaseId} />}
                   </div>
-                )}
-                <button
-                  onClick={() => advancePhase.mutate()}
-                  disabled={advancePhase.isPending}
-                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", background: "var(--accent-soft)", border: "1px solid rgba(59,130,246,0.25)", borderRadius: 10, color: "var(--accent)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
-                >
-                  <ChevronRight size={16} /> Avanzar a {nextPhase?.name || "siguiente fase"}
-                </button>
-              </div>
-            )}
+                  <div style={{ fontSize: 14, fontWeight: 600, color: isClosed ? "var(--text-sec)" : "var(--accent)" }}>
+                    {phases.find((p) => p.id === order.currentPhaseId)?.name || "—"}
+                  </div>
+                  {!isClosed && hasNextPhase && (
+                    <div style={{ marginTop: 10 }}>
+                      {nextPhase && (
+                        <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>
+                          Siguiente: <span style={{ color: "var(--text-sec)" }}>{nextPhase.name}</span>
+                        </div>
+                      )}
+                      <button
+                        onClick={() => advancePhase.mutate()}
+                        disabled={advancePhase.isPending}
+                        style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", background: "var(--accent-soft)", border: "1px solid rgba(59,130,246,0.25)", borderRadius: 10, color: "var(--accent)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+                      >
+                        <ChevronRight size={16} /> Avanzar a {nextPhase?.name || "siguiente fase"}
+                      </button>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
         )}
 

@@ -58,7 +58,7 @@ export default function DashboardPage() {
   const prevWeekProfit = dash?.prevWeekProfit || 0;
   const diff = weekProfit - prevWeekProfit;
   const weekRevenue = dash?.weekRevenue || 0;
-  const pending = activeOrders?.data?.filter((o) => o.status !== "completed") || [];
+  const pending = activeOrders?.data?.filter((o) => o.status !== "completed" && o.status !== "retired") || [];
 
   // Compute today's date string for highlighting
   const todayStr = new Date().toISOString().slice(0, 10);
