@@ -80,9 +80,8 @@ export default function HistoryPage() {
   const to = toLocalDateStr(sunday);
 
   const { data, isLoading } = useWorkOrders({
-    status: "completed",
-    from,
-    to,
+    completedFrom: from,
+    completedTo: to,
     limit: 100,
     includeFinancials: true,
   });

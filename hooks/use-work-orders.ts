@@ -42,6 +42,7 @@ interface Paginated<T> {
 export function useWorkOrders(params?: {
   page?: number; limit?: number; status?: string; search?: string;
   from?: string; to?: string; includeFinancials?: boolean; vehicleId?: string; isDelayed?: boolean;
+  completedFrom?: string; completedTo?: string;
 }) {
   return useQuery<Paginated<WorkOrder>>({
     queryKey: ["work-orders", params],
