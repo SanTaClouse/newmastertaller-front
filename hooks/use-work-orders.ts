@@ -8,12 +8,14 @@ export interface WorkOrder {
   diagnosis?: string;
   laborCost: number;
   totalPrice: number;
-  status: "new" | "progress" | "delayed" | "completed" | "incomplete" | "retired";
+  status: "new" | "progress" | "completed" | "incomplete" | "retired";
   currentPhaseId?: string;
   enteredAt: string;
   completedAt?: string;
   retiredAt?: string;
   createdAt: string;
+  daysInShop: number;
+  isDelayed: boolean;
   vehicle?: {
     id: string; brand: string; model?: string; year?: number; plate?: string; color?: string; engine?: string;
     lastMileage?: number; lastMileageAt?: string;
@@ -39,7 +41,7 @@ interface Paginated<T> {
 
 export function useWorkOrders(params?: {
   page?: number; limit?: number; status?: string; search?: string;
-  from?: string; to?: string; includeFinancials?: boolean; vehicleId?: string;
+  from?: string; to?: string; includeFinancials?: boolean; vehicleId?: string; isDelayed?: boolean;
 }) {
   return useQuery<Paginated<WorkOrder>>({
     queryKey: ["work-orders", params],

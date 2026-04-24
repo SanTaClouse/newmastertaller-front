@@ -5,7 +5,7 @@ import { X, Phone, Trash2, Check, ChevronRight, Edit3, Save, XCircle, UserPlus, 
 import { Badge } from "@/components/common/Badge";
 import { AddExpenseModal } from "./AddExpenseModal";
 import { DiagnosisModal } from "./DiagnosisModal";
-import { formatCurrency, whatsappLink, daysBetween, isValidWhatsappPhone, sanitizePhone } from "@/lib/utils";
+import { formatCurrency, whatsappLink, formatShortDate, isValidWhatsappPhone, sanitizePhone } from "@/lib/utils";
 import {
   useWorkOrder, useUpdateWorkOrder, useDeleteExpense, useAdvancePhase,
   useCompleteWorkOrder, useRetireWorkOrder,
@@ -271,8 +271,8 @@ export function OrderDetail({ orderId, onClose, isDesktop }: OrderDetailProps) {
   ) : !order ? null : (() => {
     const totalExpenses = order.expenses?.reduce((s, e) => s + Number(e.cost), 0) || 0;
     const profit = Number(order.totalPrice) - totalExpenses;
-    const daysIn = daysBetween(order.enteredAt);
-    const isDelayed = daysIn >= 3;
+    const daysIn = order.daysInShop ?? 0;
+    const isDelayed = order.isDelayed ?? false;
 
     const displayClient = order.client;
     const firstName = displayClient?.fullName?.split(" ")[0] || "";
@@ -437,7 +437,8 @@ export function OrderDetail({ orderId, onClose, isDesktop }: OrderDetailProps) {
             {order.description || <span style={{ color: "var(--text-muted)", fontStyle: "italic" }}>Sin especificar — editá para agregar</span>}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10, fontSize: 13, color: isDelayed ? "var(--red)" : "var(--text-sec)" }}>
-            {isDelayed ? "⚠" : "🕐"} {daysIn} {daysIn === 1 ? "día" : "días"} en taller{isDelayed && " — demorado"}
+            {isDelayed && "⚠ "}{daysIn} {daysIn === 1 ? "día" : "días"} en taller{isDelayed && " — demorado"}
+            {" · "}<span style={{ color: "var(--text-muted)", fontSize: 12 }}>Ingresó {formatShortDate(order.enteredAt)}</span>
           </div>
         </div>
 

@@ -15,7 +15,10 @@ function getLocalMonday(): string {
   const diff = dow === 0 ? -6 : 1 - dow;
   const monday = new Date(today);
   monday.setDate(today.getDate() + diff);
-  return monday.toISOString().slice(0, 10);
+  const y = monday.getFullYear();
+  const m = String(monday.getMonth() + 1).padStart(2, '0');
+  const d = String(monday.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 // Derive short day name from a YYYY-MM-DD string
@@ -61,7 +64,8 @@ export default function DashboardPage() {
   const pending = activeOrders?.data?.filter((o) => o.status !== "completed" && o.status !== "retired") || [];
 
   // Compute today's date string for highlighting
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
   return (
     <div style={{ padding: isDesktop ? "0 32px 40px" : "0 16px 100px" }}>

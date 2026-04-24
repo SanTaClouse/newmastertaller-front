@@ -4,12 +4,12 @@ import { useState, useEffect } from "react";
 import { Search } from "lucide-react";
 import { Badge } from "@/components/common/Badge";
 import { OrderDetail } from "@/components/work-orders/OrderDetail";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatShortDate } from "@/lib/utils";
 import { useWorkOrders } from "@/hooks/use-work-orders";
 
-const FILTERS = [
+const FILTERS: [string, string, boolean?][] = [
   ["", "Todos"], ["new", "Nuevos"], ["progress", "En proceso"],
-  ["delayed", "Demorados"], ["completed", "Completados"], ["incomplete", "Incompletos"],
+  ["delayed", "Demorados", true], ["completed", "Completados"], ["incomplete", "Incompletos"],
 ];
 
 export default function WorkOrdersPage() {
@@ -17,9 +17,13 @@ export default function WorkOrdersPage() {
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isDesktop, setIsDesktop] = useState(false);
-  const [now] = useState(() => Date.now());
 
-  const { data, isLoading } = useWorkOrders({ status: filter || undefined, search: search || undefined });
+  const isDelayedFilter = filter === "delayed";
+  const { data, isLoading } = useWorkOrders({
+    status: !isDelayedFilter && filter ? filter : undefined,
+    isDelayed: isDelayedFilter || undefined,
+    search: search || undefined,
+  });
 
   useEffect(() => {
     const check = () => setIsDesktop(window.innerWidth >= 900);
@@ -76,8 +80,9 @@ export default function WorkOrdersPage() {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {(data?.data || []).map((o) => {
-            const daysIn = Math.floor((now - new Date(o.enteredAt).getTime()) / 86400000);
-            const statusColor = ({ new: "var(--green)", progress: "var(--yellow)", delayed: "var(--red)", completed: "var(--accent)", incomplete: "var(--orange)", retired: "var(--text-muted)" } as Record<string,string>)[o.status] || "var(--border)";
+            const isClosed = o.status === "completed" || o.status === "retired";
+            const daysIn = o.daysInShop;
+            const statusColor = ({ new: "var(--green)", progress: "var(--yellow)", completed: "var(--accent)", incomplete: "var(--orange)", retired: "var(--text-muted)" } as Record<string,string>)[o.status] || "var(--border)";
             return (
               <button
                 key={o.id}
@@ -107,9 +112,14 @@ export default function WorkOrdersPage() {
                   <span style={{ fontSize: 17, fontWeight: 700, color: "var(--text)", fontFamily: "var(--font-jetbrains-mono), monospace" }}>
                     {formatCurrency(o.totalPrice)}
                   </span>
-                  <span style={{ fontSize: 12, color: daysIn >= 3 ? "var(--red)" : "var(--text-muted)" }}>
-                    {daysIn}d en taller
-                  </span>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: 12, color: !isClosed && daysIn >= 3 ? "var(--red)" : "var(--text-muted)" }}>
+                      {daysIn}d en taller
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                      Ingresó {formatShortDate(o.enteredAt)}
+                    </div>
+                  </div>
                 </div>
               </button>
             );

@@ -9,9 +9,10 @@ export function useDashboard() {
 }
 
 export function useWeeklyStats(weekStart?: string) {
+  const tzOffset = new Date().getTimezoneOffset(); // minutes, positive for UTC-3
   return useQuery({
-    queryKey: ["stats", "weekly", weekStart],
-    queryFn: () => api.get("/stats/weekly", { params: weekStart ? { weekStart } : {} }).then((r) => r.data),
+    queryKey: ["stats", "weekly", weekStart, tzOffset],
+    queryFn: () => api.get("/stats/weekly", { params: weekStart ? { weekStart, tzOffset } : {} }).then((r) => r.data),
     enabled: !!weekStart,
   });
 }

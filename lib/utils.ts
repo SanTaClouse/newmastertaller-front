@@ -19,6 +19,23 @@ export function daysBetween(date: string | Date): number {
   return differenceInDays(new Date(), new Date(date));
 }
 
+export function daysInShop(order: {
+  status: string;
+  enteredAt: string | Date;
+  completedAt?: string | Date | null;
+  retiredAt?: string | Date | null;
+}): number {
+  const isClosed = order.status === "completed" || order.status === "retired";
+  const end = isClosed
+    ? new Date((order.retiredAt || order.completedAt) as string | Date)
+    : new Date();
+  return differenceInDays(end, new Date(order.enteredAt));
+}
+
+export function formatShortDate(date: string | Date): string {
+  return new Date(date).toLocaleDateString("es-AR", { day: "numeric", month: "short" });
+}
+
 export function timeAgo(date: string | Date): string {
   return formatDistanceToNow(new Date(date), { addSuffix: true, locale: es });
 }
